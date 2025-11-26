@@ -1,0 +1,20 @@
+{
+  "name": "agent-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agent Quota Management System - Full Stack Monorepo",
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev": "pnpm --parallel --filter backend --filter frontend dev",
+    "build:backend": "pnpm --filter backend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "docker:up": "docker-compose up -d --build",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": ["monorepo", "pnpm", "express", "react", "typescript", "mongodb"],
+  "author": "",
+  "license": "ISC"
+}

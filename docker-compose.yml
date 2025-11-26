@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: agent-management-mongodb
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - agent-network
+
+  backend:
+    build: ./backend
+    container_name: agent-management-backend
+    restart: always
+    env_file: .env.production
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend/uploads:/app/uploads
+    ports:
+      - "5000:5000"
+    networks:
+      - agent-network
+
+  frontend:
+    build: ./frontend
+    container_name: agent-management-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - agent-network
+
+volumes:
+  mongo-data:
+
+networks:
+  agent-network:
+    driver: bridge

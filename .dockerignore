@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Environment (local)
+.env
+.env.local
+
+# Build outputs
+dist
+build
+**/dist
+**/build
+
+# Uploads
+backend/uploads
+
+# Logs
+*.log
+logs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation (exclude from images)
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Development files
+.editorconfig
+.prettierrc
+.eslintrc*

@@ -1,27 +1,24 @@
-FROM node:22-alpine
-
-WORKDIR /app
+FROM node:20-alpine
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
+WORKDIR /app
 
-# Install dependencies
+# Copy monorepo files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY backend/package.json ./backend/
+
+# Install all dependencies (monorepo)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Copy backend source
+COPY backend ./backend
 
-# Build TypeScript
-RUN pnpm build
+# Build backend
+WORKDIR /app/backend
+RUN pnpm run build
 
-# Create uploads directory
-RUN mkdir -p /app/uploads/passports
-
-# Expose port
 EXPOSE 5000
 
-# Start server
 CMD ["pnpm", "start"]

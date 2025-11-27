@@ -1,6 +1,5 @@
 import express, { Application } from 'express';
 import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -9,18 +8,17 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { initializeSocket } from './sockets';
 import { setupCronJobs } from './cron';
+import { initializePool } from './utils';
+import { authRoutes, quotaRoutes, adminRoutes, passportRoutes, creditRoutes } from './routes';
+import { initSocket } from './socket';
+import rateLimit from 'express-rate-limit';
 
 // Load environment variables
 dotenv.config();
 
 const app: Application = express();
 const httpServer = createServer(app);
-const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
-  },
-});
+const io = initSocket(httpServer);
 
 // Middleware
 app.use(helmet());
@@ -32,6 +30,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
 
 // Database connection
 const connectDB = async () => {
@@ -47,19 +51,19 @@ const connectDB = async () => {
 // Initialize Socket.io
 initializeSocket(io);
 
-// Routes (will be added)
-app.get('/health', (req, res) => {
+// Routes
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// TODO: Import and use routes
-// app.use('/api/auth', authRoutes);
-// app.use('/api/quota', quotaRoutes);
-// app.use('/api/passport', passportRoutes);
-// app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/quota', quotaRoutes);
+app.use('/api/passport', passportRoutes);
+app.use('/api/credit', creditRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     success: false,
@@ -72,6 +76,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+  await initializePool();
   setupCronJobs();
   
   httpServer.listen(PORT, () => {
@@ -82,4 +87,3 @@ const startServer = async () => {
 
 startServer();
 
-export { io };

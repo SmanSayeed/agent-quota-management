@@ -1,30 +1,30 @@
-FROM node:22-alpine AS builder
-
-WORKDIR /app
+# Build Stage
+FROM node:20-alpine as build
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
+WORKDIR /app
 
-# Install dependencies
+# Copy monorepo files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY frontend/package.json ./frontend/
+
+# Install all dependencies (monorepo)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Copy frontend source
+COPY frontend ./frontend
 
-# Build
-RUN pnpm build
+# Build frontend
+WORKDIR /app/frontend
+RUN pnpm run build
 
-# Production stage
+# Production Stage
 FROM nginx:alpine
 
-# Copy built files
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

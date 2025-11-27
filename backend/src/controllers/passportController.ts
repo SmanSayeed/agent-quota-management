@@ -1,15 +1,16 @@
 import { Request, Response } from 'express';
 import { Passport } from '../models/Passport';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { getIO } from '../socket';
+// import { getIO } from '../socket';
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
+import { sendSuccess, sendError } from '../utils';
 
 export const uploadPassport = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
-      res.status(400).json({ message: 'No file uploaded' });
+      sendError(res, 'No file uploaded', 400, 'NO_FILE');
       return;
     }
 
@@ -23,21 +24,21 @@ export const uploadPassport = async (req: AuthRequest, res: Response) => {
       status: 'pending',
     });
 
-    getIO().to('admin-room').emit('new-passport', passport);
+    // getIO().to('admin-room').emit('new-passport', passport);
 
-    res.status(201).json(passport);
+    sendSuccess(res, passport, 'Passport uploaded successfully', 201);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
 export const getPassports = async (_req: Request, res: Response) => {
   try {
     const passports = await Passport.find().sort({ createdAt: -1 }).populate('userId', 'name phone role');
-    res.json(passports);
+    sendSuccess(res, passports);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -49,7 +50,7 @@ export const updatePassport = async (req: AuthRequest, res: Response) => {
     const passport = await Passport.findById(id);
 
     if (!passport) {
-      res.status(404).json({ message: 'Passport not found' });
+      sendError(res, 'Passport not found', 404, 'PASSPORT_NOT_FOUND');
       return;
     }
 
@@ -62,11 +63,11 @@ export const updatePassport = async (req: AuthRequest, res: Response) => {
 
     await passport.save();
 
-    getIO().to('admin-room').emit('passport-updated', passport);
+    // getIO().to('admin-room').emit('passport-updated', passport);
 
-    res.json(passport);
+    sendSuccess(res, passport);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -76,7 +77,7 @@ export const getPassportImageToken = async (req: AuthRequest, res: Response) => 
         const passport = await Passport.findById(id);
         
         if (!passport) {
-            res.status(404).json({ message: 'Passport not found' });
+            sendError(res, 'Passport not found', 404, 'PASSPORT_NOT_FOUND');
             return;
         }
 
@@ -84,9 +85,9 @@ export const getPassportImageToken = async (req: AuthRequest, res: Response) => 
             expiresIn: '10m'
         });
 
-        res.json({ token });
+        sendSuccess(res, { token });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
     }
 };
 
@@ -100,9 +101,9 @@ export const servePassportImage = async (req: Request, res: Response) => {
         if (fs.existsSync(imagePath)) {
             res.sendFile(imagePath);
         } else {
-            res.status(404).json({ message: 'Image not found' });
+            sendError(res, 'Image not found', 404, 'IMAGE_NOT_FOUND');
         }
     } catch (error) {
-        res.status(401).json({ message: 'Invalid or expired token' });
+        sendError(res, 'Invalid or expired token', 401, 'INVALID_TOKEN');
     }
 };

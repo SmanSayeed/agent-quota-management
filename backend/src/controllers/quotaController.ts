@@ -5,6 +5,7 @@ import { Pool } from '../models/Pool';
 import { QuotaTransaction } from '../models/QuotaTransaction';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { getIO } from '../socket';
+import { sendSuccess, sendError } from '../utils';
 
 export const buyNormalQuota = async (req: AuthRequest, res: Response) => {
   const session = await mongoose.startSession();
@@ -57,14 +58,14 @@ export const buyNormalQuota = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
 
-    getIO().emit('pool-updated', { availableQuota: pool.availableQuota });
-    getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
-    getIO().to(userId.toString()).emit('credit-balance-updated', { creditBalance: user.creditBalance });
+    getIO().to('pool-updates').emit('pool-updated', { availableQuota: pool.availableQuota });
+    // getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
+    // getIO().to(userId.toString()).emit('credit-balance-updated', { creditBalance: user.creditBalance });
 
-    res.json({ success: true, message: 'Quota purchased successfully' });
+    sendSuccess(res, null, 'Quota purchased successfully');
   } catch (error: any) {
     await session.abortTransaction();
-    res.status(400).json({ message: error.message });
+    sendError(res, error.message, 400);
   } finally {
     session.endSession();
   }
@@ -120,14 +121,14 @@ export const buyExtraQuota = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
 
-    getIO().emit('pool-updated', { availableQuota: pool.availableQuota });
-    getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
-    getIO().to(userId.toString()).emit('credit-balance-updated', { creditBalance: user.creditBalance });
+    getIO().to('pool-updates').emit('pool-updated', { availableQuota: pool.availableQuota });
+    // getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
+    // getIO().to(userId.toString()).emit('credit-balance-updated', { creditBalance: user.creditBalance });
 
-    res.json({ success: true, message: 'Extra quota purchased successfully' });
+    sendSuccess(res, null, 'Extra quota purchased successfully');
   } catch (error: any) {
     await session.abortTransaction();
-    res.status(400).json({ message: error.message });
+    sendError(res, error.message, 400);
   } finally {
     session.endSession();
   }
@@ -171,13 +172,13 @@ export const transferToChild = async (req: AuthRequest, res: Response) => {
   
       await session.commitTransaction();
   
-      getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: agent.quotaBalance });
-      getIO().to(childId.toString()).emit('quota-balance-updated', { quotaBalance: child.quotaBalance });
+      // getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: agent.quotaBalance });
+      // getIO().to(childId.toString()).emit('quota-balance-updated', { quotaBalance: child.quotaBalance });
   
-      res.json({ success: true, message: 'Quota transferred successfully' });
+      sendSuccess(res, null, 'Quota transferred successfully');
     } catch (error: any) {
       await session.abortTransaction();
-      res.status(400).json({ message: error.message });
+      sendError(res, error.message, 400);
     } finally {
       session.endSession();
     }
@@ -219,17 +220,18 @@ export const liveToPool = async (req: AuthRequest, res: Response) => {
         agentQuotaAfter: user.quotaBalance,
         poolQuotaBefore,
         poolQuotaAfter: pool.availableQuota,
+
       }], { session });
   
       await session.commitTransaction();
   
-      getIO().emit('pool-updated', { availableQuota: pool.availableQuota });
-      getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
+      getIO().to('pool-updates').emit('pool-updated', { availableQuota: pool.availableQuota });
+      // getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: user.quotaBalance });
   
-      res.json({ success: true, message: 'Quota returned to pool successfully' });
+      sendSuccess(res, null, 'Quota returned to pool successfully');
     } catch (error: any) {
       await session.abortTransaction();
-      res.status(400).json({ message: error.message });
+      sendError(res, error.message, 400);
     } finally {
       session.endSession();
     }

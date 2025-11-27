@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
-import { generateToken, clearToken } from '../utils';
+import { generateToken, clearToken, sendSuccess, sendError } from '../utils';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // @desc    Auth user & get token
@@ -14,31 +14,35 @@ export const login = async (req: Request, res: Response) => {
 
     if (user && (await user.matchPassword(password))) {
       if (user.status === 'disabled') {
-         res.status(401).json({ message: 'Account is disabled' });
+         sendError(res, 'Account is disabled', 401, 'ACCOUNT_DISABLED');
          return;
       }
       if (user.status === 'pending') {
-         res.status(401).json({ message: 'Account is pending approval' });
+         sendError(res, 'Account is pending approval', 401, 'ACCOUNT_PENDING');
          return;
       }
 
       generateToken(res, user._id, user.role);
 
-      res.json({
-        _id: user._id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        creditBalance: user.creditBalance,
-        quotaBalance: user.quotaBalance,
-      });
+      sendSuccess(
+        res,
+        {
+          _id: user._id,
+          name: user.name,
+          phone: user.phone,
+          role: user.role,
+          status: user.status,
+          creditBalance: user.creditBalance,
+          quotaBalance: user.quotaBalance,
+        },
+        'Login successful'
+      );
     } else {
-      res.status(401).json({ message: 'Invalid phone or password' });
+      sendError(res, 'Invalid phone or password', 401, 'INVALID_CREDENTIALS');
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -52,7 +56,7 @@ export const register = async (req: Request, res: Response) => {
     const userExists = await User.findOne({ phone });
 
     if (userExists) {
-      res.status(400).json({ message: 'User already exists' });
+      sendError(res, 'User already exists', 400, 'USER_EXISTS');
       return;
     }
 
@@ -65,20 +69,24 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        message: 'Registration successful. Please wait for admin approval.',
-      });
+      sendSuccess(
+        res,
+        {
+          _id: user._id,
+          name: user.name,
+          phone: user.phone,
+          role: user.role,
+          status: user.status,
+        },
+        'Registration successful. Please wait for admin approval.',
+        201
+      );
     } else {
-      res.status(400).json({ message: 'Invalid user data' });
+      sendError(res, 'Invalid user data', 400, 'INVALID_DATA');
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -87,7 +95,7 @@ export const register = async (req: Request, res: Response) => {
 // @access  Public
 export const logout = (_req: Request, res: Response) => {
   clearToken(res);
-  res.status(200).json({ message: 'Logged out successfully' });
+  sendSuccess(res, null, 'Logged out successfully');
 };
 
 // @desc    Get current user profile
@@ -97,7 +105,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   const user = req.user;
 
   if (user) {
-    res.json({
+    sendSuccess(res, {
       _id: user._id,
       name: user.name,
       phone: user.phone,
@@ -110,6 +118,6 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       parentId: user.parentId,
     });
   } else {
-    res.status(404).json({ message: 'User not found' });
+    sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
   }
 };

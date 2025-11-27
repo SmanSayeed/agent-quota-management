@@ -16,6 +16,14 @@ export const initializeSocket = (io: Server) => {
       console.log(`Socket ${socket.id} joined admin room`);
     });
 
+    // Join pool room
+    socket.on('join-pool-room', (role: string) => {
+      if (['superadmin', 'admin', 'agent'].includes(role)) {
+        socket.join('pool-updates');
+        console.log(`Socket ${socket.id} joined pool-updates room as ${role}`);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
     });

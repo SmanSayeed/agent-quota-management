@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import { CreditRequest } from '../models/CreditRequest';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { getIO } from '../socket';
+// import { getIO } from '../socket';
+import { sendSuccess, sendError } from '../utils';
 
 export const requestCredit = async (req: AuthRequest, res: Response) => {
   try {
@@ -11,7 +12,7 @@ export const requestCredit = async (req: AuthRequest, res: Response) => {
     const userId = req.user!._id;
 
     if (!amount || amount <= 0) {
-      res.status(400).json({ message: 'Invalid amount' });
+      sendError(res, 'Invalid amount', 400, 'INVALID_AMOUNT');
       return;
     }
 
@@ -21,18 +22,18 @@ export const requestCredit = async (req: AuthRequest, res: Response) => {
       status: 'pending',
     });
 
-    res.status(201).json(creditRequest);
+    sendSuccess(res, creditRequest, 'Credit requested successfully', 201);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
 export const getCreditRequests = async (_req: AuthRequest, res: Response) => {
   try {
     const requests = await CreditRequest.find().sort({ createdAt: -1 }).populate('agentId', 'name phone');
-    res.json(requests);
+    sendSuccess(res, requests);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
 
@@ -68,12 +69,12 @@ export const approveCreditRequest = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
 
-    getIO().to(agent._id.toString()).emit('credit-balance-updated', { creditBalance: agent.creditBalance });
+    // getIO().to(agent._id.toString()).emit('credit-balance-updated', { creditBalance: agent.creditBalance });
 
-    res.json(creditRequest);
+    sendSuccess(res, creditRequest, 'Credit request approved');
   } catch (error: any) {
     await session.abortTransaction();
-    res.status(400).json({ message: error.message });
+    sendError(res, error.message, 400);
   } finally {
     session.endSession();
   }
@@ -87,12 +88,12 @@ export const rejectCreditRequest = async (req: AuthRequest, res: Response) => {
 
     const creditRequest = await CreditRequest.findById(id);
     if (!creditRequest) {
-      res.status(404).json({ message: 'Request not found' });
+      sendError(res, 'Request not found', 404, 'REQUEST_NOT_FOUND');
       return;
     }
 
     if (creditRequest.status !== 'pending') {
-      res.status(400).json({ message: 'Request already processed' });
+      sendError(res, 'Request already processed', 400, 'ALREADY_PROCESSED');
       return;
     }
 
@@ -102,8 +103,8 @@ export const rejectCreditRequest = async (req: AuthRequest, res: Response) => {
 
     await creditRequest.save();
 
-    res.json(creditRequest);
+    sendSuccess(res, creditRequest, 'Credit request rejected');
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };

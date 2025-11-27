@@ -25,6 +25,11 @@ export const initializeSocket = (userId: string, role: string) => {
     if (role === 'agent') {
       socket?.emit('join-agents-room');
     }
+
+    // Join pool updates room
+    if (['superadmin', 'admin', 'agent'].includes(role)) {
+      socket?.emit('join-pool-room', role);
+    }
   });
 
   socket.on('disconnect', () => {

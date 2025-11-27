@@ -1,12 +1,12 @@
-import { Container, Title, Paper, Text } from '@mantine/core';
-
 export default function LoginPage() {
   return (
-    <Container size="xs" py={80}>
-      <Paper shadow="md" p="xl" radius="md">
-        <Title order={2} mb="md">Login</Title>
-        <Text c="dimmed">Login page - To be implemented</Text>
-      </Paper>
-    </Container>
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+      <div className="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Login</h2>
+          <p className="text-base-content/60">Login page - To be implemented</p>
+        </div>
+      </div>
+    </div>
   );
 }

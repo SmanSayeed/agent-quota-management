@@ -1,9 +1,7 @@
-import { Container, Title } from '@mantine/core';
-
 export default function SuperAdminDashboard() {
   return (
-    <Container size="xl" py="xl">
-      <Title order={1}>Super Admin Dashboard</Title>
-    </Container>
+    <div className="container mx-auto p-8">
+      <h1 className="text-4xl font-bold">Super Admin Dashboard</h1>
+    </div>
   );
 }

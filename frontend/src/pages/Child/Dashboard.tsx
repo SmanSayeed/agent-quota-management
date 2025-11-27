@@ -1,9 +1,7 @@
-import { Container, Title } from '@mantine/core';
-
 export default function ChildDashboard() {
   return (
-    <Container size="xl" py="xl">
-      <Title order={1}>Child Agent Dashboard</Title>
-    </Container>
+    <div className="container mx-auto p-8">
+      <h1 className="text-4xl font-bold">Child Agent Dashboard</h1>
+    </div>
   );
 }

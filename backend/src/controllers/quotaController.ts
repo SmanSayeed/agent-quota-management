@@ -20,15 +20,16 @@ export const buyNormalQuota = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(userId).session(session);
     if (!user) throw new Error('User not found');
 
-    if (user.dailyPurchaseLimit != null && user.todayPurchased + quantity > user.dailyPurchaseLimit) {
+    const pool = await Pool.findById('pool_singleton').session(session);
+    if (!pool) throw new Error('Pool not found');
+
+    // Check against global daily limit
+    if (user.todayPurchased + quantity > pool.dailyPurchaseLimit) {
       throw new Error('Daily purchase limit exceeded');
     }
 
     const cost = quantity * 20;
     if (user.creditBalance < cost) throw new Error('Insufficient credit balance');
-
-    const pool = await Pool.findById('pool_singleton').session(session);
-    if (!pool) throw new Error('Pool not found');
     if (pool.availableQuota < quantity) throw new Error('Insufficient pool quota');
 
     const agentQuotaBefore = user.quotaBalance;
@@ -84,15 +85,16 @@ export const buyExtraQuota = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(userId).session(session);
     if (!user) throw new Error('User not found');
 
-    if (user.dailyPurchaseLimit != null && user.todayPurchased < user.dailyPurchaseLimit) {
+    const pool = await Pool.findById('pool_singleton').session(session);
+    if (!pool) throw new Error('Pool not found');
+
+    // Check if user has exhausted their daily limit
+    if (user.todayPurchased < pool.dailyPurchaseLimit) {
         throw new Error('You must exhaust your daily limit first');
     }
 
     const cost = quantity * 20;
     if (user.creditBalance < cost) throw new Error('Insufficient credit balance');
-
-    const pool = await Pool.findById('pool_singleton').session(session);
-    if (!pool) throw new Error('Pool not found');
     if (pool.availableQuota < quantity) throw new Error('Insufficient pool quota');
 
     const agentQuotaBefore = user.quotaBalance;

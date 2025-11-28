@@ -5,11 +5,11 @@ import { protect, authorize } from '../middleware';
 const router: Router = express.Router();
 
 router.use(protect);
+// Routes
+router.post('/request', authorize('agent', 'child'), requestCredit);
 
-router.post('/request', authorize('agent'), requestCredit);
-
-router.get('/', authorize('superadmin'), getCreditRequests);
-router.put('/:id/approve', authorize('superadmin'), approveCreditRequest);
-router.put('/:id/reject', authorize('superadmin'), rejectCreditRequest);
+router.get('/', authorize('superadmin', 'agent'), getCreditRequests);
+router.put('/:id/approve', authorize('superadmin', 'agent'), approveCreditRequest);
+router.put('/:id/reject', authorize('superadmin', 'agent'), rejectCreditRequest);
 
 export default router;

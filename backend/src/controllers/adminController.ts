@@ -6,7 +6,7 @@ import { sendSuccess, sendError } from '../utils';
 
 export const getAgents = async (_req: Request, res: Response) => {
   try {
-    const agents = await User.find({ role: 'agent' }).select('-password');
+    const agents = await User.find({ role: { $in: ['agent', 'child'] } }).select('-password');
     sendSuccess(res, agents);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
@@ -16,7 +16,7 @@ export const getAgents = async (_req: Request, res: Response) => {
 export const updateAgent = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status, dailyPurchaseLimit } = req.body;
+    const { status } = req.body;
 
     const agent = await User.findById(id);
 
@@ -26,7 +26,6 @@ export const updateAgent = async (req: Request, res: Response) => {
     }
 
     if (status) agent.status = status;
-    if (dailyPurchaseLimit !== undefined) agent.dailyPurchaseLimit = dailyPurchaseLimit;
 
     await agent.save();
 
@@ -47,7 +46,7 @@ export const getPool = async (_req: Request, res: Response) => {
 
 export const updatePool = async (req: Request, res: Response) => {
   try {
-    const { availableQuota } = req.body;
+    const { availableQuota, dailyPurchaseLimit } = req.body;
     
     const pool = await Pool.findById('pool_singleton');
     if (!pool) {
@@ -55,7 +54,8 @@ export const updatePool = async (req: Request, res: Response) => {
         return;
     }
 
-    pool.availableQuota = availableQuota;
+    if (availableQuota !== undefined) pool.availableQuota = availableQuota;
+    if (dailyPurchaseLimit !== undefined) pool.dailyPurchaseLimit = dailyPurchaseLimit;
     await pool.save();
 
     getIO().to('pool-updates').emit('pool-updated', { availableQuota: pool.availableQuota });

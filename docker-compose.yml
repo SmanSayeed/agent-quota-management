@@ -5,14 +5,22 @@ services:
     image: mongo:7
     container_name: agent-management-mongodb
     restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/data/mongo-keyfile"]
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-admin123}
     volumes:
       - mongodb_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=agent-management
+      - ./mongo-keyfile:/data/mongo-keyfile:ro
     networks:
-      - agent-network
+      - agent-management-network
+    healthcheck:
+      test: |
+        test $$(mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --quiet --eval "try { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]}).ok } catch(e) { rs.status().ok }") -eq 1
+      interval: 10s
+      start_period: 30s
 
   backend:
     build:
@@ -24,12 +32,15 @@ services:
       - "5000:5000"
     env_file:
       - .env.production
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@mongodb:27017/agent-management?authSource=admin&replicaSet=rs0
     depends_on:
       - mongodb
     volumes:
       - ./backend/uploads:/app/backend/uploads
     networks:
-      - agent-network
+      - agent-management-network
 
   frontend:
     build:
@@ -38,16 +49,16 @@ services:
     container_name: agent-management-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - backend
     networks:
-      - agent-network
+      - agent-management-network
 
 volumes:
   mongodb_data:
     driver: local
 
 networks:
-  agent-network:
+  agent-management-network:
     driver: bridge

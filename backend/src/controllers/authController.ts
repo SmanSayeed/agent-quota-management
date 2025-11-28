@@ -51,7 +51,7 @@ export const login = async (req: Request, res: Response) => {
 // @access  Public
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, phone, password } = req.body;
+    const { name, phone, password, parentAgentId } = req.body;
 
     const userExists = await User.findOne({ phone });
 
@@ -60,12 +60,22 @@ export const register = async (req: Request, res: Response) => {
       return;
     }
 
+    // If parentAgentId is provided, verify it exists and is an agent
+    if (parentAgentId) {
+      const parentAgent = await User.findById(parentAgentId);
+      if (!parentAgent || parentAgent.role !== 'agent') {
+        sendError(res, 'Invalid Parent Agent ID', 400, 'INVALID_PARENT_AGENT');
+        return;
+      }
+    }
+
     const user = await User.create({
       name,
       phone,
       password,
-      role: 'agent',
-      status: 'pending', // Agents need approval
+      role: parentAgentId ? 'child' : 'agent',
+      parentId: parentAgentId || undefined,
+      status: 'pending', // All new registrations need approval
     });
 
     if (user) {
@@ -98,6 +108,48 @@ export const logout = (_req: Request, res: Response) => {
   sendSuccess(res, null, 'Logged out successfully');
 };
 
+// @desc    Get logged in agent's children
+// @route   GET /api/auth/my-children
+// @access  Private (Agent)
+export const getMyChildren = async (req: AuthRequest, res: Response) => {
+  try {
+    const children = await User.find({ parentId: req.user!._id }).select('-password');
+    sendSuccess(res, children);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+// @desc    Create a child agent directly
+// @route   POST /api/auth/create-child
+// @access  Private (Agent)
+export const createChild = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, phone, password } = req.body;
+    const parentId = req.user!._id;
+
+    const userExists = await User.findOne({ phone });
+
+    if (userExists) {
+      sendError(res, 'User already exists', 400, 'USER_EXISTS');
+      return;
+    }
+
+    const user = await User.create({
+      name,
+      phone,
+      password,
+      role: 'child',
+      parentId,
+      status: 'pending', // Must be approved by Admin
+    });
+
+    sendSuccess(res, user, 'Child agent created successfully. Waiting for admin approval.', 201);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
 // @desc    Get current user profile
 // @route   GET /api/auth/me
 // @access  Private
@@ -121,3 +173,4 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
   }
 };
+

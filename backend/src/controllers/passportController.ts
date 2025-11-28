@@ -42,6 +42,16 @@ export const getPassports = async (_req: Request, res: Response) => {
   }
 };
 
+export const getMyPassports = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const passports = await Passport.find({ userId }).sort({ createdAt: -1 });
+    sendSuccess(res, passports);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
 export const updatePassport = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -67,6 +77,30 @@ export const updatePassport = async (req: AuthRequest, res: Response) => {
 
     sendSuccess(res, passport);
   } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+export const deletePassport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const passport = await Passport.findById(id);
+
+    if (!passport) {
+      sendError(res, 'Passport not found', 404, 'PASSPORT_NOT_FOUND');
+      return;
+    }
+
+    // Delete image file
+    const imagePath = path.join(__dirname, '../../uploads/passports', passport.imagePath);
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    await passport.deleteOne();
+    sendSuccess(res, null, 'Passport deleted successfully');
+  } catch (error) {
+    console.error(error);
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
@@ -99,6 +133,7 @@ export const servePassportImage = async (req: Request, res: Response) => {
         const imagePath = path.join(__dirname, '../../uploads/passports', decoded.imagePath);
 
         if (fs.existsSync(imagePath)) {
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
             res.sendFile(imagePath);
         } else {
             sendError(res, 'Image not found', 404, 'IMAGE_NOT_FOUND');

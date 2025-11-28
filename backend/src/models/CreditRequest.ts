@@ -1,10 +1,28 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type CreditRequestStatus = 'pending' | 'approved' | 'rejected';
+export type PaymentMethod = 'bank_transfer' | 'mobile_banking';
+
+export interface IPaymentDetails {
+  // Bank Transfer fields
+  bankName?: string;
+  accountNumber?: string;
+  
+  // Mobile Banking fields
+  provider?: string; // bKash, Nagad, Rocket
+  phoneNumber?: string;
+  
+  // Common fields
+  transactionId: string;
+  transactionDate: string;
+}
 
 export interface ICreditRequest extends Document {
   agentId: mongoose.Types.ObjectId;
   amount: number;
+  paymentMethod: PaymentMethod;
+  paymentDetails: IPaymentDetails;
+  proofImagePath?: string;
   status: CreditRequestStatus;
   approvedBy?: mongoose.Types.ObjectId;
   rejectionReason?: string;
@@ -23,6 +41,19 @@ const creditRequestSchema = new Schema<ICreditRequest>(
       type: Number,
       required: true,
       min: 1,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['bank_transfer', 'mobile_banking'],
+      required: true,
+    },
+    paymentDetails: {
+      type: Schema.Types.Mixed,
+      required: true,
+    },
+    proofImagePath: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

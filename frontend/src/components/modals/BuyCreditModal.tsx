@@ -10,7 +10,7 @@ import Input from '../../components/ui/Input';
 import toast from 'react-hot-toast';
 
 const creditRequestSchema = z.object({
-  amount: z.coerce.number().min(1, 'Amount must be at least 1 BDT'),
+  amount: z.coerce.number().min(1, 'Amount must be at least 1'),
   paymentMethod: z.enum(['bank_transfer', 'mobile_banking']),
   // Bank Transfer fields
   bankName: z.string().optional(),
@@ -83,7 +83,7 @@ export default function BuyCreditModal({ isOpen, onClose }: BuyCreditModalProps)
     <Modal isOpen={isOpen} onClose={onClose} title="Request Credit">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
-          label="Amount (BDT)"
+          label="Amount"
           type="number"
           error={errors.amount?.message}
           {...register('amount')}

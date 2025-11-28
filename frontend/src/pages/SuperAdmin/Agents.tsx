@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '../../api/axios';
+import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -31,6 +32,7 @@ export default function Agents() {
   const queryClient = useQueryClient();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { dailyPurchaseLimit } = usePoolStore();
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ['agents'],
@@ -130,7 +132,7 @@ export default function Agents() {
                   <td>{agent.creditBalance}</td>
                   <td>{agent.quotaBalance}</td>
                   <td>
-                    {agent.todayPurchased} / {agent.dailyPurchaseLimit}
+                    {agent.todayPurchased} / {dailyPurchaseLimit}
                   </td>
                   <td>
                     <Button size="sm" variant="ghost" onClick={() => handleEdit(agent)}>

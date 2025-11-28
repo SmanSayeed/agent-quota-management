@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-export type UserRole = 'superadmin' | 'admin' | 'agent' | 'child';
+export type UserRole = 'superadmin' | 'agent' | 'child';
 export type UserStatus = 'pending' | 'active' | 'disabled';
 
 export interface IUser extends Document {
@@ -13,7 +13,6 @@ export interface IUser extends Document {
   parentId?: mongoose.Types.ObjectId;
   creditBalance: number;
   quotaBalance: number;
-  dailyPurchaseLimit?: number;
   todayPurchased: number;
   createdAt: Date;
   updatedAt: Date;
@@ -39,7 +38,7 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['superadmin', 'admin', 'agent', 'child'],
+      enum: ['superadmin', 'agent', 'child'],
       required: true,
     },
     status: {
@@ -60,11 +59,6 @@ const userSchema = new Schema<IUser>(
     quotaBalance: {
       type: Number,
       default: 0,
-      min: 0,
-    },
-    dailyPurchaseLimit: {
-      type: Number,
-      default: null,
       min: 0,
     },
     todayPurchased: {

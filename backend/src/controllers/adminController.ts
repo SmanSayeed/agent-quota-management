@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Pool } from '../models/Pool';
+import { SystemSettings } from '../models/SystemSettings';
 import { getIO } from '../socket';
 import { sendSuccess, sendError } from '../utils';
 
@@ -35,6 +36,7 @@ export const updateAgent = async (req: Request, res: Response) => {
   }
 };
 
+// Pool Management (Quota only)
 export const getPool = async (_req: Request, res: Response) => {
   try {
     const pool = await Pool.findById('pool_singleton');
@@ -46,7 +48,7 @@ export const getPool = async (_req: Request, res: Response) => {
 
 export const updatePool = async (req: Request, res: Response) => {
   try {
-    const { availableQuota, dailyPurchaseLimit } = req.body;
+    const { availableQuota } = req.body;
     
     const pool = await Pool.findById('pool_singleton');
     if (!pool) {
@@ -55,12 +57,67 @@ export const updatePool = async (req: Request, res: Response) => {
     }
 
     if (availableQuota !== undefined) pool.availableQuota = availableQuota;
-    if (dailyPurchaseLimit !== undefined) pool.dailyPurchaseLimit = dailyPurchaseLimit;
     await pool.save();
 
     getIO().to('pool-updates').emit('pool-updated', { availableQuota: pool.availableQuota });
 
     sendSuccess(res, pool);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+// System Settings Management
+export const getSettings = async (_req: Request, res: Response) => {
+  try {
+    const settings = await SystemSettings.findById('system_settings_singleton');
+    sendSuccess(res, settings);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+export const updateSettings = async (req: Request, res: Response) => {
+  try {
+    const { dailyPurchaseLimit, creditPrice, quotaPrice } = req.body;
+    
+    const settings = await SystemSettings.findById('system_settings_singleton');
+    if (!settings) {
+        sendError(res, 'Settings not found', 404, 'SETTINGS_NOT_FOUND');
+        return;
+    }
+
+    if (dailyPurchaseLimit !== undefined) settings.dailyPurchaseLimit = dailyPurchaseLimit;
+    if (creditPrice !== undefined) settings.creditPrice = creditPrice;
+    if (quotaPrice !== undefined) settings.quotaPrice = quotaPrice;
+    await settings.save();
+
+    sendSuccess(res, settings);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+export const createSuperadmin = async (req: Request, res: Response) => {
+  try {
+    const { name, phone, password } = req.body;
+
+    const userExists = await User.findOne({ phone });
+
+    if (userExists) {
+      sendError(res, 'User already exists', 400, 'USER_EXISTS');
+      return;
+    }
+
+    const user = await User.create({
+      name,
+      phone,
+      password,
+      role: 'superadmin',
+      status: 'active',
+    });
+
+    sendSuccess(res, user, 'Superadmin created successfully', 201);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }

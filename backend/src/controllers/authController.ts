@@ -34,6 +34,7 @@ export const login = async (req: Request, res: Response) => {
           status: user.status,
           creditBalance: user.creditBalance,
           quotaBalance: user.quotaBalance,
+          todayPurchased: user.todayPurchased,
         },
         'Login successful'
       );
@@ -165,7 +166,6 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       status: user.status,
       creditBalance: user.creditBalance,
       quotaBalance: user.quotaBalance,
-      dailyPurchaseLimit: user.dailyPurchaseLimit,
       todayPurchased: user.todayPurchased,
       parentId: user.parentId,
     });
@@ -173,4 +173,5 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
   }
 };
+
 

@@ -17,7 +17,9 @@ import RequestCredit from './pages/Agent/RequestCredit';
 import SlipRequest from './pages/Agent/SlipRequest';
 import BuyQuota from './pages/Agent/BuyQuota';
 import AgentCreditRequests from './pages/Agent/AgentCreditRequests';
+import AgentQuotaRequests from './pages/Agent/AgentQuotaRequests';
 import MySlipRequests from './pages/Agent/MySlipRequests';
+import LiveToPool from './pages/Agent/LiveToPool';
 import ChildDashboard from './pages/Child/Dashboard';
 import ChildUploadPassport from './pages/Child/UploadPassport';
 import ChildSlipRequest from './pages/Child/SlipRequest';
@@ -43,7 +45,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
       <Routes>
         {!isAuthenticated ? (
           <>
@@ -70,8 +72,10 @@ function App() {
                 <Route path="/agent/slip-request" element={<SlipRequest />} />
                 <Route path="/agent/my-slip-requests" element={<MySlipRequests />} />
                 <Route path="/agent/buy-quota" element={<BuyQuota />} />
+                <Route path="/agent/live-to-pool" element={<LiveToPool />} />
                 <Route path="/agent/my-children" element={<MyChildAgents />} />
                 <Route path="/agent/credit-requests" element={<AgentCreditRequests />} />
+                <Route path="/agent/quota-requests" element={<AgentQuotaRequests />} />
                 <Route path="/agent/upload-passport" element={<UploadPassport />} />
                 <Route path="*" element={<Navigate to="/agent/dashboard" replace />} />
               </>

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
+import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -19,6 +20,7 @@ type BuyQuotaInputs = z.infer<typeof buyQuotaSchema>;
 export default function BuyQuota() {
   const navigate = useNavigate();
   const { user, updateQuotaBalance, updateCreditBalance } = useAuthStore();
+  const { dailyPurchaseLimit } = usePoolStore();
   const [isBuying, setIsBuying] = useState(false);
 
   const {
@@ -33,10 +35,8 @@ export default function BuyQuota() {
   const onSubmit = async (data: BuyQuotaInputs) => {
     try {
       setIsBuying(true);
-      const endpoint =
-        user?.todayPurchased === user?.dailyPurchaseLimit
-          ? '/quota/buy-extra'
-          : '/quota/buy-normal';
+      // The backend now handles the logic for normal vs extra quota automatically
+      const endpoint = '/quota/buy';
 
       await api.post(endpoint, data);
       
@@ -73,14 +73,13 @@ export default function BuyQuota() {
         <Card title="Credit Balance">
           <div className="stat p-0">
             <div className="stat-value text-secondary">{user?.creditBalance}</div>
-            <div className="stat-desc">BDT</div>
           </div>
         </Card>
 
         <Card title="Daily Limit">
           <div className="stat p-0">
             <div className="stat-value">
-              {user?.todayPurchased} / {user?.dailyPurchaseLimit}
+              {user?.todayPurchased} / {dailyPurchaseLimit}
             </div>
             <div className="stat-desc">Purchased Today</div>
           </div>
@@ -102,7 +101,7 @@ export default function BuyQuota() {
 
           <div className="card-actions justify-end">
             <Button type="submit" loading={isSubmitting || isBuying}>
-              {user?.todayPurchased === user?.dailyPurchaseLimit
+              {(user?.todayPurchased || 0) >= dailyPurchaseLimit
                 ? 'Buy Extra Quota'
                 : 'Buy Normal Quota'}
             </Button>

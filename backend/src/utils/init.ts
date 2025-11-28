@@ -1,17 +1,32 @@
 import { Pool } from '../models/Pool';
+import { SystemSettings } from '../models/SystemSettings';
 import { User } from '../models/User';
 
 export const initializePool = async () => {
   try {
+    // Initialize Pool singleton
     const pool = await Pool.findById('pool_singleton');
     if (!pool) {
       await Pool.create({
         _id: 'pool_singleton',
         availableQuota: 0,
-        version: 0,
       });
       console.log('✅ Pool singleton initialized');
     }
+    
+    // Initialize SystemSettings singleton
+    const settings = await SystemSettings.findById('system_settings_singleton');
+    if (!settings) {
+      await SystemSettings.create({
+        _id: 'system_settings_singleton',
+        dailyPurchaseLimit: 100,
+        creditPrice: 1,
+        quotaPrice: 20,
+      });
+      console.log('✅ SystemSettings singleton initialized');
+    }
+    
+    // Create default superadmin
     const superadmin = await User.findOne({ role: 'superadmin' });
     if (!superadmin) {
       await User.create({

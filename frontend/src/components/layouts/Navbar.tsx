@@ -29,7 +29,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       <div className="flex-1">
         <a className="btn btn-ghost text-xl normal-case">Agent Management</a>
       </div>
-      <div className="flex-none gap-2">
+      <div className="flex-none flex items-center gap-2">
         <div className="hidden md:flex flex-col items-end mr-2">
           <span className="text-sm font-bold">{user?.name}</span>
           <span className="text-xs opacity-70 capitalize">{user?.role}</span>
@@ -45,7 +45,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
           >
             <li>
-              <a onClick={() => logout()}>Logout</a>
+              <button onClick={() => logout()} className="btn btn-error btn-sm w-full text-white">Logout</button>
             </li>
           </ul>
         </div>

@@ -28,7 +28,7 @@ export default function MainLayout() {
           className="drawer-overlay"
           onClick={() => setIsDrawerOpen(false)}
         ></label>
-        <Sidebar />
+        <Sidebar onClose={() => setIsDrawerOpen(false)} />
       </div>
     </div>
   );

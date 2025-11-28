@@ -13,7 +13,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-admin123}
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-keyfile:/data/mongo-keyfile:ro
+      - ./docker/secrets/mongo-keyfile:/data/mongo-keyfile:ro
     networks:
       - agent-management-network
     healthcheck:

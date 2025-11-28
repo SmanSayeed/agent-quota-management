@@ -1,10 +1,35 @@
+import { useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
+import api from '../../api/axios';
 
 export default function AgentDashboard() {
   const { user } = useAuthStore();
+  const { availableQuota, dailyPurchaseLimit, setPoolData } = usePoolStore();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch pool quota
+        const poolResponse = await api.get('/quota/pool');
+        // Fetch settings
+        const settingsResponse = await api.get('/settings');
+        
+        setPoolData({
+          availableQuota: poolResponse.data.data.availableQuota,
+          creditPrice: settingsResponse.data.data.creditPrice,
+          quotaPrice: settingsResponse.data.data.quotaPrice,
+          dailyPurchaseLimit: settingsResponse.data.data.dailyPurchaseLimit,
+        });
+      } catch (error) {
+        console.error('Failed to fetch data', error);
+      }
+    };
+    fetchData();
+  }, [setPoolData]);
 
   const copyAgentId = () => {
     if (user?._id) {
@@ -28,7 +53,7 @@ export default function AgentDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card title="My Quota">
           <div className="stat p-0">
             <div className="stat-value text-primary">{user?.quotaBalance}</div>
@@ -36,17 +61,24 @@ export default function AgentDashboard() {
           </div>
         </Card>
 
+        <Card title="Global Pool">
+          <div className="stat p-0">
+            <div className="stat-value text-accent">{availableQuota}</div>
+            <div className="stat-desc">Available in pool</div>
+          </div>
+        </Card>
+
         <Card title="Credit Balance">
           <div className="stat p-0">
             <div className="stat-value text-secondary">{user?.creditBalance}</div>
-            <div className="stat-desc">BDT</div>
+            <div className="stat-desc">Credits available</div>
           </div>
         </Card>
 
         <Card title="Daily Limit">
           <div className="stat p-0">
             <div className="stat-value">
-              {user?.todayPurchased} / {user?.dailyPurchaseLimit}
+              {user?.todayPurchased} / {dailyPurchaseLimit}
             </div>
             <div className="stat-desc">Purchased Today</div>
           </div>

@@ -18,7 +18,7 @@ export const initializeSocket = (io: Server) => {
 
     // Join pool room
     socket.on('join-pool-room', (role: string) => {
-      if (['superadmin', 'admin', 'agent'].includes(role)) {
+      if (['superadmin', 'agent'].includes(role)) {
         socket.join('pool-updates');
         console.log(`Socket ${socket.id} joined pool-updates room as ${role}`);
       }

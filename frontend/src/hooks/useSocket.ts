@@ -4,7 +4,19 @@ import { useAuthStore } from '../store/authStore';
 import { usePoolStore } from '../store/poolStore';
 import toast from 'react-hot-toast';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// If VITE_API_URL contains /api, we want to strip it for the socket connection
+// or just use the base URL.
+const getSocketUrl = () => {
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  try {
+    const urlObj = new URL(url);
+    return urlObj.origin;
+  } catch (e) {
+    return url;
+  }
+};
+
+const SOCKET_URL = getSocketUrl();
 
 export const useSocket = () => {
   const { user, updateQuotaBalance, updateCreditBalance } = useAuthStore();
@@ -33,11 +45,13 @@ export const useSocket = () => {
         console.log('Socket connected');
         // Join rooms based on role
         if (user.role === 'superadmin' || user.role === 'admin') {
-          socket.emit('join-room', 'admin-room');
-          socket.emit('join-room', 'pool-updates');
+          socket.emit('join-admin-room');
+          socket.emit('join-pool-room', user.role);
+          // Admin might also need their own user room if they have personal balances
+          socket.emit('join-user-room', user._id); 
         } else if (user.role === 'agent') {
-          socket.emit('join-room', `agent-room:${user._id}`);
-          socket.emit('join-room', 'pool-updates');
+          socket.emit('join-user-room', user._id);
+          socket.emit('join-pool-room', user.role);
         }
       });
 
@@ -46,16 +60,16 @@ export const useSocket = () => {
         setAvailableQuota(data.availableQuota);
       });
 
-      socket.on('quota-balance-updated', (data: { balance: number }) => {
+      socket.on('quota-balance-updated', (data: { quotaBalance: number }) => {
         console.log('Quota balance updated:', data);
-        updateQuotaBalance(data.balance);
-        toast.success(`Quota updated: ${data.balance}`);
+        updateQuotaBalance(data.quotaBalance);
+        toast.success(`Quota updated: ${data.quotaBalance}`);
       });
 
-      socket.on('credit-balance-updated', (data: { balance: number }) => {
+      socket.on('credit-balance-updated', (data: { creditBalance: number }) => {
         console.log('Credit balance updated:', data);
-        updateCreditBalance(data.balance);
-        toast.success(`Credit updated: ${data.balance}`);
+        updateCreditBalance(data.creditBalance);
+        toast.success(`Credit updated: ${data.creditBalance}`);
       });
 
       socket.on('new-passport', (_data: any) => {

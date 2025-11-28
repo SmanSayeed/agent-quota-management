@@ -9,25 +9,42 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import toast from 'react-hot-toast';
 
-const updatePoolSchema = z.object({
+const updateSettingsSchema = z.object({
   dailyPurchaseLimit: z.coerce.number().min(0, 'Limit must be a positive number'),
   creditPrice: z.coerce.number().min(0.01, 'Credit price must be greater than 0'),
   quotaPrice: z.coerce.number().min(1, 'Quota price must be at least 1'),
 });
 
-type UpdatePoolInputs = z.infer<typeof updatePoolSchema>;
+const createSuperadminSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  phone: z.string().min(11, 'Phone must be at least 11 digits'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type UpdateSettingsInputs = z.infer<typeof updateSettingsSchema>;
+type CreateSuperadminInputs = z.infer<typeof createSuperadminSchema>;
 
 export default function SuperAdminDashboard() {
   const { availableQuota, setAvailableQuota } = usePoolStore();
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<UpdatePoolInputs>({
-    resolver: zodResolver(updatePoolSchema),
+  } = useForm<UpdateSettingsInputs>({
+    resolver: zodResolver(updateSettingsSchema),
+  });
+
+  const {
+    register: registerSuperadmin,
+    handleSubmit: handleSubmitSuperadmin,
+    reset: resetSuperadmin,
+    formState: { errors: superadminErrors, isSubmitting: isSubmittingSuperadmin },
+  } = useForm<CreateSuperadminInputs>({
+    resolver: zodResolver(createSuperadminSchema),
   });
 
   useEffect(() => {
@@ -36,25 +53,41 @@ export default function SuperAdminDashboard() {
 
   const fetchPoolData = async () => {
     try {
-      const { data } = await api.get('/admin/pool');
-      setAvailableQuota(data.data.availableQuota);
-      setValue('dailyPurchaseLimit', data.data.dailyPurchaseLimit);
-      setValue('creditPrice', data.data.creditPrice || 1);
-      setValue('quotaPrice', data.data.quotaPrice || 20);
+      // Fetch pool for quota
+      const poolResponse = await api.get('/quota/pool');
+      setAvailableQuota(poolResponse.data.data.availableQuota);
+      
+      // Fetch settings for prices and limits
+      const settingsResponse = await api.get('/admin/settings');
+      setValue('dailyPurchaseLimit', settingsResponse.data.data.dailyPurchaseLimit);
+      setValue('creditPrice', settingsResponse.data.data.creditPrice || 1);
+      setValue('quotaPrice', settingsResponse.data.data.quotaPrice || 20);
     } catch (error) {
-      console.error('Failed to fetch pool data', error);
+      console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const onSubmit = async (formData: UpdatePoolInputs) => {
+  const onSubmit = async (formData: UpdateSettingsInputs) => {
     try {
-      await api.put('/admin/pool', formData);
+      await api.put('/admin/settings', formData);
       toast.success('Settings updated successfully');
       fetchPoolData();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const onCreateSuperadmin = async (formData: CreateSuperadminInputs) => {
+    try {
+      await api.post('/admin/create-superadmin', formData);
+      toast.success('Superadmin created successfully');
+      setShowCreateModal(false);
+      resetSuperadmin();
+    } catch (error: any) {
+      const message = error.response?.data?.error?.message || 'Failed to create superadmin';
+      toast.error(message);
     }
   };
 
@@ -68,7 +101,12 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
+        <Button onClick={() => setShowCreateModal(true)}>
+          Create Superadmin
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card title="Pool Status">
@@ -115,6 +153,53 @@ export default function SuperAdminDashboard() {
           </form>
         </Card>
       </div>
+
+      {/* Create Superadmin Modal */}
+      {showCreateModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Create New Superadmin</h3>
+            <form onSubmit={handleSubmitSuperadmin(onCreateSuperadmin)} className="space-y-4">
+              <Input
+                label="Name"
+                error={superadminErrors.name?.message}
+                {...registerSuperadmin('name')}
+              />
+              <Input
+                label="Phone"
+                error={superadminErrors.phone?.message}
+                {...registerSuperadmin('phone')}
+              />
+              <Input
+                label="Password"
+                type="password"
+                error={superadminErrors.password?.message}
+                {...registerSuperadmin('password')}
+              />
+
+              <div className="alert alert-warning text-sm">
+                <span>The new superadmin will have full system control.</span>
+              </div>
+
+              <div className="modal-action">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetSuperadmin();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" loading={isSubmittingSuperadmin}>
+                  Create Superadmin
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function AgentCreditRequests() {
         <h1 className="text-3xl font-bold">Child Credit Requests</h1>
         <div className="bg-base-200 px-4 py-2 rounded-lg">
           <span className="text-sm opacity-70">My Balance: </span>
-          <span className="font-bold text-secondary">{user?.creditBalance} BDT</span>
+          <span className="font-bold text-secondary">{user?.creditBalance}</span>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ export default function AgentCreditRequests() {
                       <div className="text-sm opacity-50">{req.agentId?.phone}</div>
                     </div>
                   </td>
-                  <td>{req.amount} BDT</td>
+                  <td>{req.amount}</td>
                   <td>
                     <div className="badge badge-outline">
                       {req.paymentMethod === 'mobile_banking' ? 'Mobile Banking' : 'Bank Transfer'}
@@ -228,7 +228,7 @@ export default function AgentCreditRequests() {
         {selectedRequest && (
           <div className="space-y-4">
             <div className="alert alert-info">
-              <span>Review details. Approving will deduct <strong>{approveAmount} BDT</strong> from your balance.</span>
+              <span>Review details. Approving will deduct <strong>{approveAmount}</strong> from your balance.</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -247,7 +247,7 @@ export default function AgentCreditRequests() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm opacity-70">Requested Amount</p>
-                <p className="font-bold text-lg">{selectedRequest.amount} BDT</p>
+                <p className="font-bold text-lg">{selectedRequest.amount}</p>
               </div>
               <div>
                 <p className="text-sm opacity-70">Payment Method</p>
@@ -295,7 +295,7 @@ export default function AgentCreditRequests() {
             <div className="divider">Approval</div>
 
             <Input
-              label="Credit Amount to Approve (BDT)"
+              label="Credit Amount to Approve"
               type="number"
               value={approveAmount}
               onChange={(e) => setApproveAmount(e.target.value)}
@@ -312,7 +312,7 @@ export default function AgentCreditRequests() {
                 loading={approveMutation.isPending}
                 disabled={parseFloat(approveAmount) > (user?.creditBalance || 0)}
               >
-                Approve {approveAmount} BDT
+                Approve {approveAmount}
               </Button>
             </div>
           </div>

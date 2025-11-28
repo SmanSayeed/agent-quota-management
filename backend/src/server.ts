@@ -8,8 +8,9 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { initializeSocket } from './sockets';
 import { setupCronJobs } from './cron';
-import { initializePool } from './utils';
-import { authRoutes, quotaRoutes, adminRoutes, passportRoutes, creditRoutes } from './routes';
+import { initializePool, runDatabaseSeed } from './utils';
+import { authRoutes, quotaRoutes, adminRoutes, passportRoutes, creditRoutes, settingsRoutes } from './routes';
+import quotaRequestRoutes from './routes/quotaRequestRoutes';
 import { initSocket } from './socket';
 import rateLimit from 'express-rate-limit';
 
@@ -60,6 +61,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quota', quotaRoutes);
 app.use('/api/passport', passportRoutes);
 app.use('/api/credit', creditRoutes);
+app.use('/api/quota-request', quotaRequestRoutes);
+app.use('/api/settings', settingsRoutes); // Public settings endpoint
 app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
@@ -76,6 +79,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+  await runDatabaseSeed(); // Auto-seed database on startup
   await initializePool();
   setupCronJobs();
   

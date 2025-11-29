@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { buyQuota, transferToChild, liveToPool, getPoolInfo } from '../controllers';
+import { buyQuota, transferToChild, liveToPool, getPoolInfo, getQuotaHistory } from '../controllers';
 import { protect, authorize } from '../middleware';
 
 const router: Router = express.Router();
@@ -11,5 +11,6 @@ router.post('/transfer-to-child', authorize('agent'), transferToChild);
 router.post('/live-to-pool', authorize('agent'), liveToPool);
 // New route: agents (and superadmin) can read global pool info
 router.get('/pool', authorize('agent', 'superadmin'), getPoolInfo);
+router.get('/history', authorize('agent'), getQuotaHistory);
 
 export default router;

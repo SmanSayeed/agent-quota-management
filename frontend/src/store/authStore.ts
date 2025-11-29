@@ -6,6 +6,8 @@ interface User {
   _id: string;
   name: string;
   phone: string;
+  email?: string;
+  emailVerified?: boolean;
   role: 'superadmin' | 'admin' | 'agent' | 'child';
   status: 'pending' | 'active' | 'disabled';
   creditBalance?: number;

@@ -94,7 +94,7 @@ export const buyQuota = async (req: AuthRequest, res: Response) => {
         poolQuotaAfter: updatedPool?.availableQuota ?? poolBefore,
       });
     }
-    await QuotaTransaction.create(transactions, { session });
+    await QuotaTransaction.create(transactions, { session, ordered: true });
 
     await session.commitTransaction();
 
@@ -153,7 +153,7 @@ export const transferToChild = async (req: AuthRequest, res: Response) => {
         agentQuotaBefore: parentBefore,
         agentQuotaAfter: updatedParent.quotaBalance,
       },
-    ], { session });
+    ], { session, ordered: true });
 
     await session.commitTransaction();
 
@@ -209,7 +209,7 @@ export const liveToPool = async (req: AuthRequest, res: Response) => {
         poolQuotaBefore: poolBefore,
         poolQuotaAfter: updatedPool.availableQuota,
       },
-    ], { session });
+    ], { session, ordered: true });
 
     await session.commitTransaction();
 
@@ -235,5 +235,21 @@ export const getPoolInfo = async (_req: AuthRequest, res: Response) => {
     sendSuccess(res, pool);
   } catch (error: any) {
     sendError(res, error.message, 400);
+  }
+};
+/**
+ * Get quota transaction history for the logged-in agent
+ */
+export const getQuotaHistory = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    
+    const transactions = await QuotaTransaction.find({ agentId: userId })
+      .sort({ createdAt: -1 })
+      .populate('childId', 'name phone'); // Populate child info if it's a transfer
+
+    sendSuccess(res, transactions);
+  } catch (error: any) {
+    sendError(res, error.message, 500);
   }
 };

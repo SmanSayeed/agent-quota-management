@@ -7,6 +7,7 @@ import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import LivePoolQuota from '../../components/ui/LivePoolQuota';
 import toast from 'react-hot-toast';
 
 const updateSettingsSchema = z.object({
@@ -25,7 +26,7 @@ type UpdateSettingsInputs = z.infer<typeof updateSettingsSchema>;
 type CreateSuperadminInputs = z.infer<typeof createSuperadminSchema>;
 
 export default function SuperAdminDashboard() {
-  const { availableQuota, setAvailableQuota } = usePoolStore();
+  const { setAvailableQuota } = usePoolStore();
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -109,10 +110,11 @@ export default function SuperAdminDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card title="Pool Status">
-          <div className="stat p-0">
-            <div className="stat-title">Available Quota</div>
-            <div className="stat-value text-primary">{availableQuota}</div>
+        <Card title="Live Pool Status">
+          <div className="flex items-center justify-center p-6">
+            <LivePoolQuota showLabel={false} />
+          </div>
+          <div className="text-center mt-2">
             <div className="stat-desc">Global pool for all agents</div>
           </div>
         </Card>

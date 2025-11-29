@@ -67,9 +67,9 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
           },
           { 
-            to: '/agent/live-to-pool', 
-            label: 'Return to Pool',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            to: '/agent/quota-history', 
+            label: 'Quota History',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           },
           { 
             to: '/agent/my-slip-requests', 
@@ -89,6 +89,11 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             to: '/child/my-slip-requests', 
             label: 'My Slip Requests',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          },
+          { 
+            to: '/child/my-quota-requests', 
+            label: 'My Quota Requests',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
           },
         ];
       default:
@@ -143,7 +148,11 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
                 to={link.to}
                 end={link.end}
                 className={({ isActive }) => 
-                  `flex items-center gap-3 ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-0' : ''}`
+                  `flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+                    isActive 
+                      ? 'bg-primary text-primary-content font-semibold' 
+                      : 'hover:bg-base-300'
+                  } ${isCollapsed ? 'justify-center px-2' : ''}`
                 }
                 title={isCollapsed ? link.label : ''}
               >

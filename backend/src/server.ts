@@ -9,7 +9,7 @@ import cookieParser from 'cookie-parser';
 import { initializeSocket } from './sockets';
 import { setupCronJobs } from './cron';
 import { initializePool, runDatabaseSeed } from './utils';
-import { authRoutes, quotaRoutes, adminRoutes, passportRoutes, creditRoutes, settingsRoutes } from './routes';
+import { authRoutes, quotaRoutes, adminRoutes, passportRoutes, creditRoutes, settingsRoutes, emailRoutes } from './routes';
 import quotaRequestRoutes from './routes/quotaRequestRoutes';
 import { initSocket } from './socket';
 import rateLimit from 'express-rate-limit';
@@ -58,6 +58,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', emailRoutes); // Email/OTP routes (registration, password reset)
 app.use('/api/quota', quotaRoutes);
 app.use('/api/passport', passportRoutes);
 app.use('/api/credit', creditRoutes);

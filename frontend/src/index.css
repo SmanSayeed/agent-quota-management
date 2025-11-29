@@ -1,2 +1,42 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+/* Custom animations for LivePoolQuota */
+@keyframes pulse-radar {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes ping-big {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  75%, 100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-radar {
+  animation: pulse-radar 1.25s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-ping-big {
+  animation: ping-big 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-flash {
+  animation: flash 0.5s ease-in-out 3;
+}

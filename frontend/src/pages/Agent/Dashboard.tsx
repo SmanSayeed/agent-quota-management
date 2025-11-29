@@ -3,12 +3,13 @@ import { useAuthStore } from '../../store/authStore';
 import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import LivePoolQuota from '../../components/ui/LivePoolQuota';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 
 export default function AgentDashboard() {
   const { user } = useAuthStore();
-  const { availableQuota, dailyPurchaseLimit, setPoolData } = usePoolStore();
+  const { dailyPurchaseLimit, setPoolData } = usePoolStore();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,10 +62,9 @@ export default function AgentDashboard() {
           </div>
         </Card>
 
-        <Card title="Global Pool">
-          <div className="stat p-0">
-            <div className="stat-value text-accent">{availableQuota}</div>
-            <div className="stat-desc">Available in pool</div>
+        <Card title="Live Global Pool">
+          <div className="flex items-center justify-center p-4">
+            <LivePoolQuota showLabel={false} />
           </div>
         </Card>
 

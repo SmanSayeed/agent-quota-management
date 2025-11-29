@@ -121,34 +121,18 @@ export const getMyChildren = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// @desc    Create a child agent directly
-// @route   POST /api/auth/create-child
+// @desc    Create a child agent directly - DEPRECATED
+// @note    This function is deprecated. Agents should use the new email-based registration flow
+//          with parentAgentId: /api/auth/send-registration-otp + /api/auth/verify-and-register
+// @route   POST /api/auth/create-child (kept for backward compatibility)
 // @access  Private (Agent)
-export const createChild = async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, phone, password } = req.body;
-    const parentId = req.user!._id;
-
-    const userExists = await User.findOne({ phone });
-
-    if (userExists) {
-      sendError(res, 'User already exists', 400, 'USER_EXISTS');
-      return;
-    }
-
-    const user = await User.create({
-      name,
-      phone,
-      password,
-      role: 'child',
-      parentId,
-      status: 'pending', // Must be approved by Admin
-    });
-
-    sendSuccess(res, user, 'Child agent created successfully. Waiting for admin approval.', 201);
-  } catch (error) {
-    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
-  }
+export const createChild = async (_req: AuthRequest, res: Response) => {
+  sendError(
+    res,
+    'This endpoint is deprecated. Please use the new email-based registration flow with parentAgentId parameter.',
+    410,
+    'ENDPOINT_DEPRECATED'
+  );
 };
 
 // @desc    Get current user profile
@@ -162,6 +146,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       _id: user._id,
       name: user.name,
       phone: user.phone,
+      email: user.email,
+      emailVerified: user.emailVerified,
       role: user.role,
       status: user.status,
       creditBalance: user.creditBalance,

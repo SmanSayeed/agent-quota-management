@@ -6,6 +6,7 @@ import { useSocket } from './hooks/useSocket';
 import MainLayout from './components/layouts/MainLayout';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import ForgotPasswordPage from './pages/ForgotPassword';
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
 import Agents from './pages/SuperAdmin/Agents';
 import CreditRequests from './pages/SuperAdmin/CreditRequests';
@@ -24,6 +25,8 @@ import ChildDashboard from './pages/Child/Dashboard';
 import ChildUploadPassport from './pages/Child/UploadPassport';
 import ChildSlipRequest from './pages/Child/SlipRequest';
 import ChildBuyQuota from './pages/Child/BuyQuota';
+import QuotaHistory from './pages/Agent/QuotaHistory';
+import MyQuotaRequests from './pages/Child/MyQuotaRequests';
 
 function App() {
   const { user, isAuthenticated, checkAuth, isLoading } = useAuthStore();
@@ -51,6 +54,7 @@ function App() {
           <>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </>
         ) : (
@@ -76,6 +80,7 @@ function App() {
                 <Route path="/agent/my-children" element={<MyChildAgents />} />
                 <Route path="/agent/credit-requests" element={<AgentCreditRequests />} />
                 <Route path="/agent/quota-requests" element={<AgentQuotaRequests />} />
+                <Route path="/agent/quota-history" element={<QuotaHistory />} />
                 <Route path="/agent/upload-passport" element={<UploadPassport />} />
                 <Route path="*" element={<Navigate to="/agent/dashboard" replace />} />
               </>
@@ -87,6 +92,7 @@ function App() {
                 <Route path="/child/slip-request" element={<ChildSlipRequest />} />
                 <Route path="/child/my-slip-requests" element={<MySlipRequests />} />
                 <Route path="/child/buy-quota" element={<ChildBuyQuota />} />
+                <Route path="/child/my-quota-requests" element={<MyQuotaRequests />} />
                 <Route path="/child/upload-passport" element={<ChildUploadPassport />} />
                 <Route path="*" element={<Navigate to="/child/dashboard" replace />} />
               </>

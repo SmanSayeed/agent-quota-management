@@ -9,6 +9,7 @@ import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import LivePoolQuota from '../../components/ui/LivePoolQuota';
 import toast from 'react-hot-toast';
 
 const liveToPoolSchema = z.object({
@@ -20,7 +21,6 @@ type LiveToPoolInputs = z.infer<typeof liveToPoolSchema>;
 export default function LiveToPool() {
   const navigate = useNavigate();
   const { user, updateQuotaBalance } = useAuthStore();
-  const { availableQuota } = usePoolStore();
   const [isReturning, setIsReturning] = useState(false);
 
   const {
@@ -86,9 +86,11 @@ export default function LiveToPool() {
           </div>
         </Card>
 
-        <Card title="Global Pool">
-          <div className="stat p-0">
-            <div className="stat-value text-accent">{availableQuota}</div>
+        <Card title="Live Global Pool">
+          <div className="flex items-center justify-center p-4">
+            <LivePoolQuota showLabel={false} />
+          </div>
+          <div className="text-center mt-2">
             <div className="stat-desc">Current pool quota</div>
           </div>
         </Card>

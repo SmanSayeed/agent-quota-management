@@ -7,6 +7,8 @@ export type UserStatus = 'pending' | 'active' | 'disabled';
 export interface IUser extends Document {
   name: string;
   phone: string;
+  email?: string; // Optional for superadmin, required for agent and child
+  emailVerified: boolean;
   password: string;
   role: UserRole;
   status: UserStatus;
@@ -31,6 +33,26 @@ const userSchema = new Schema<IUser>(
       required: true,
       unique: true,
       trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true, // Allows multiple null values but ensures uniqueness for non-null values
+      validate: {
+        validator: function (v: string) {
+          // Email is required for agent and child roles
+          if ((this as IUser).role === 'agent' || (this as IUser).role === 'child') {
+            return v != null && v.length > 0;
+          }
+          return true;
+        },
+        message: 'Email is required for agent and child roles',
+      },
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
     },
     password: {
       type: String,

@@ -19,61 +19,24 @@ interface ChildAgent {
   status: string;
 }
 
-const createChildSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  phone: z.string().min(11, 'Phone must be at least 11 digits'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
 const transferQuotaSchema = z.object({
   quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
 });
 
-type CreateChildInputs = z.infer<typeof createChildSchema>;
 type TransferQuotaInputs = z.infer<typeof transferQuotaSchema>;
 
 export default function MyChildAgents() {
   const queryClient = useQueryClient();
-  const { updateQuotaBalance } = useAuthStore();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { user, updateQuotaBalance } = useAuthStore();
   const [transferTarget, setTransferTarget] = useState<ChildAgent | null>(null);
 
-  // TODO: Backend needs an endpoint to get ONLY my children. 
-  // For now assuming /admin/agents filters or we need a new endpoint.
-  // Actually doc doesn't specify an endpoint to list my children.
-  // I'll assume I need to create one or use a filter on existing if allowed.
-  // Wait, I can't access /admin/agents as an agent.
-  // I will assume I need to add `GET /api/auth/my-children` or similar.
-  // For this plan, I will mock it or assume it exists. 
-  // Let's assume I added `GET /api/agent/children` in backend (I should have added this too).
-  // Since I can't easily add another backend endpoint right now without switching context too much,
-  // I will implement the frontend assuming the endpoint `GET /api/auth/my-children` exists 
-  // and I will add it to the backend in the next step if possible or just note it.
-  // Actually, I added `createChild` to auth routes. I should add `getMyChildren` too.
-  
   const { data: children, isLoading } = useQuery({
     queryKey: ['myChildren'],
     queryFn: async () => {
-      // Placeholder endpoint - I will need to implement this in backend
       const { data } = await api.get('/auth/my-children'); 
       return data.data as ChildAgent[];
     },
     retry: false,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: CreateChildInputs) => {
-      await api.post('/auth/create-child', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myChildren'] });
-      toast.success('Child agent created successfully');
-      setIsCreateModalOpen(false);
-      resetCreate();
-    },
-    onError: (error) => {
-      console.error(error);
-    },
   });
 
   const transferMutation = useMutation({
@@ -95,16 +58,6 @@ export default function MyChildAgents() {
     },
   });
 
-
-  const {
-    register: registerCreate,
-    handleSubmit: handleSubmitCreate,
-    reset: resetCreate,
-    formState: { errors: errorsCreate, isSubmitting: isSubmittingCreate },
-  } = useForm<CreateChildInputs>({
-    resolver: zodResolver(createChildSchema),
-  });
-
   const {
     register: registerTransfer,
     handleSubmit: handleSubmitTransfer,
@@ -114,21 +67,38 @@ export default function MyChildAgents() {
     resolver: zodResolver(transferQuotaSchema),
   });
 
-  const onCreateSubmit = (data: CreateChildInputs) => {
-    createMutation.mutate(data);
-  };
-
   const onTransferSubmit = (data: TransferQuotaInputs) => {
     if (transferTarget) {
       transferMutation.mutate({ childId: transferTarget._id, quantity: data.quantity });
     }
   };
 
+  const copyParentId = () => {
+    if (user?._id) {
+      navigator.clipboard.writeText(user._id);
+      toast.success('Parent ID copied to clipboard');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold">My Child Agents</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>Create New Child</Button>
+        
+        <div className="bg-base-200 p-4 rounded-lg flex flex-col gap-2 w-full md:w-auto">
+          <span className="text-sm font-semibold text-gray-500">Your Parent Agent ID</span>
+          <div className="flex items-center gap-2">
+            <code className="bg-base-100 px-3 py-2 rounded border border-base-300 font-mono text-lg">
+              {user?._id}
+            </code>
+            <Button size="sm" variant="ghost" onClick={copyParentId}>
+              Copy
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 max-w-xs">
+            Share this ID with your child agents. They need to enter it during registration.
+          </p>
+        </div>
       </div>
 
       <Card>
@@ -187,40 +157,6 @@ export default function MyChildAgents() {
           </table>
         </div>
       </Card>
-
-      {/* Create Child Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create Child Agent"
-      >
-        <form onSubmit={handleSubmitCreate(onCreateSubmit)} className="space-y-4">
-          <Input
-            label="Name"
-            error={errorsCreate.name?.message}
-            {...registerCreate('name')}
-          />
-          <Input
-            label="Phone"
-            error={errorsCreate.phone?.message}
-            {...registerCreate('phone')}
-          />
-          <Input
-            label="Password"
-            type="password"
-            error={errorsCreate.password?.message}
-            {...registerCreate('password')}
-          />
-          <div className="modal-action">
-            <Button type="button" variant="ghost" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={isSubmittingCreate || createMutation.isPending}>
-              Create
-            </Button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Transfer Quota Modal */}
       <Modal

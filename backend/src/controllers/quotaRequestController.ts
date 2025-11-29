@@ -151,3 +151,17 @@ export const rejectQuotaRequest = async (req: AuthRequest, res: Response) => {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
+// Child gets their own quota requests
+export const getMyQuotaRequests = async (req: AuthRequest, res: Response) => {
+  try {
+    const childId = req.user!._id;
+
+    const quotaRequests = await QuotaRequest.find({ childId })
+      .sort({ createdAt: -1 });
+
+    sendSuccess(res, quotaRequests);
+  } catch (error) {
+    console.error(error);
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};

@@ -1,43 +1,53 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import api from '../../api/axios';
-import { useAuthStore } from '../../store/authStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
+import { DataTable } from '../../components/ui/DataTable';
 import toast from 'react-hot-toast';
 
 interface ChildAgent {
   _id: string;
   name: string;
   phone: string;
+  status: 'pending' | 'active' | 'disabled';
   quotaBalance: number;
-  status: string;
+  createdAt: string;
 }
-
-const transferQuotaSchema = z.object({
-  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-});
-
-type TransferQuotaInputs = z.infer<typeof transferQuotaSchema>;
 
 export default function MyChildAgents() {
   const queryClient = useQueryClient();
-  const { user, updateQuotaBalance } = useAuthStore();
-  const [transferTarget, setTransferTarget] = useState<ChildAgent | null>(null);
+  const [selectedChild, setSelectedChild] = useState<ChildAgent | null>(null);
+  const [transferAmount, setTransferAmount] = useState<string>('');
 
-  const { data: children, isLoading } = useQuery({
-    queryKey: ['myChildren'],
-    queryFn: async () => {
-      const { data } = await api.get('/auth/my-children'); 
-      return data.data as ChildAgent[];
-    },
-    retry: false,
+  // Pagination & Filtering State
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
   });
+  const [nameFilter, setNameFilter] = useState('');
+  const [phoneFilter, setPhoneFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['myChildren', pagination.pageIndex, pagination.pageSize, statusFilter, nameFilter, phoneFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        status: statusFilter,
+        name: nameFilter,
+        phone: phoneFilter,
+      });
+      const { data } = await api.get(`/auth/my-children?${params.toString()}`);
+      return data;
+    },
+  });
+
+  const children = data?.data || [];
+  const pageCount = data?.pagination?.totalPages || 0;
 
   const transferMutation = useMutation({
     mutationFn: async ({ childId, quantity }: { childId: string; quantity: number }) => {
@@ -45,141 +55,181 @@ export default function MyChildAgents() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myChildren'] });
-      // Update own quota balance
-      api.get('/auth/me').then(({ data }) => {
-        updateQuotaBalance(data.data.quotaBalance);
-      });
+      queryClient.invalidateQueries({ queryKey: ['me'] }); // Update my balance
       toast.success('Quota transferred successfully');
-      setTransferTarget(null);
-      resetTransfer();
+      handleCloseModal();
     },
-    onError: (error) => {
-      console.error(error);
+    onError: (error: any) => {
+      const message = error.response?.data?.error?.message || 'Failed to transfer quota';
+      toast.error(message);
     },
   });
 
-  const {
-    register: registerTransfer,
-    handleSubmit: handleSubmitTransfer,
-    reset: resetTransfer,
-    formState: { errors: errorsTransfer, isSubmitting: isSubmittingTransfer },
-  } = useForm<TransferQuotaInputs>({
-    resolver: zodResolver(transferQuotaSchema),
-  });
-
-  const onTransferSubmit = (data: TransferQuotaInputs) => {
-    if (transferTarget) {
-      transferMutation.mutate({ childId: transferTarget._id, quantity: data.quantity });
-    }
+  const handleTransferClick = (child: ChildAgent) => {
+    setSelectedChild(child);
+    setTransferAmount('');
   };
 
-  const copyParentId = () => {
-    if (user?._id) {
-      navigator.clipboard.writeText(user._id);
-      toast.success('Parent ID copied to clipboard');
-    }
+  const handleCloseModal = () => {
+    setSelectedChild(null);
+    setTransferAmount('');
   };
+
+  const handleTransfer = () => {
+    if (!selectedChild) return;
+    const amount = parseInt(transferAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    transferMutation.mutate({ childId: selectedChild._id, quantity: amount });
+  };
+
+  const columns = useMemo<ColumnDef<ChildAgent>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => <div className="font-bold">{row.original.name}</div>,
+      },
+      {
+        accessorKey: 'phone',
+        header: 'Phone',
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <div
+            className={`badge ${
+              row.original.status === 'active'
+                ? 'badge-success'
+                : row.original.status === 'pending'
+                ? 'badge-warning'
+                : 'badge-error'
+            }`}
+          >
+            {row.original.status}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'quotaBalance',
+        header: 'Quota Balance',
+        cell: ({ row }) => <span className="font-mono">{row.original.quotaBalance}</span>,
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Joined',
+        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => handleTransferClick(row.original)}
+            disabled={row.original.status !== 'active'}
+          >
+            Transfer Quota
+          </Button>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Child Agents</h1>
-        
-        <div className="bg-base-200 p-4 rounded-lg flex flex-col gap-2 w-full md:w-auto">
-          <span className="text-sm font-semibold text-gray-500">Your Parent Agent ID</span>
-          <div className="flex items-center gap-2">
-            <code className="bg-base-100 px-3 py-2 rounded border border-base-300 font-mono text-lg">
-              {user?._id}
-            </code>
-            <Button size="sm" variant="ghost" onClick={copyParentId}>
-              Copy
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 max-w-xs">
-            Share this ID with your child agents. They need to enter it during registration.
-          </p>
-        </div>
       </div>
 
       <Card>
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Quota Balance</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {children?.map((child) => (
-                <tr key={child._id}>
-                  <td>{child.name}</td>
-                  <td>{child.phone}</td>
-                  <td>{child.quotaBalance}</td>
-                  <td>
-                    <div className={`badge ${child.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
-                      {child.status}
-                    </div>
-                  </td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="info"
-                      onClick={() => {
-                        setTransferTarget(child);
-                        resetTransfer();
-                      }}
-                      disabled={child.status !== 'active'}
-                    >
-                      Transfer Quota
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {(!children || children.length === 0) && !isLoading && (
-                <tr>
-                  <td colSpan={5} className="text-center">
-                    No child agents found
-                  </td>
-                </tr>
-              )}
-              {isLoading && (
-                <tr>
-                  <td colSpan={5} className="text-center">
-                    <span className="loading loading-spinner"></span>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={children}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          isLoading={isLoading}
+          filterConfigs={[
+            {
+              id: 'name',
+              label: 'Name',
+              type: 'text',
+              value: nameFilter,
+              onChange: (value) => {
+                setNameFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+            },
+            {
+              id: 'phone',
+              label: 'Phone',
+              type: 'text',
+              value: phoneFilter,
+              onChange: (value) => {
+                setPhoneFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+            },
+            {
+              id: 'status',
+              label: 'Status',
+              type: 'select',
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Active', value: 'active' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Disabled', value: 'disabled' },
+              ],
+            },
+          ]}
+        />
       </Card>
 
-      {/* Transfer Quota Modal */}
+      {/* Transfer Modal */}
       <Modal
-        isOpen={!!transferTarget}
-        onClose={() => setTransferTarget(null)}
-        title={`Transfer Quota to ${transferTarget?.name}`}
+        isOpen={!!selectedChild}
+        onClose={handleCloseModal}
+        title={`Transfer Quota to ${selectedChild?.name}`}
       >
-        <form onSubmit={handleSubmitTransfer(onTransferSubmit)} className="space-y-4">
-          <Input
-            label="Quantity"
-            type="number"
-            error={errorsTransfer.quantity?.message}
-            {...registerTransfer('quantity')}
-          />
+        <div className="space-y-4">
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text">Amount to Transfer</span>
+            </label>
+            <input
+              type="number"
+              placeholder="Enter amount"
+              className="input input-bordered w-full"
+              value={transferAmount}
+              onChange={(e) => setTransferAmount(e.target.value)}
+              min="1"
+            />
+          </div>
+
           <div className="modal-action">
-            <Button type="button" variant="ghost" onClick={() => setTransferTarget(null)}>
+            <Button variant="ghost" onClick={handleCloseModal}>
               Cancel
             </Button>
-            <Button type="submit" loading={isSubmittingTransfer || transferMutation.isPending}>
+            <Button
+              variant="primary"
+              onClick={handleTransfer}
+              loading={transferMutation.isPending}
+            >
               Transfer
             </Button>
           </div>
-        </form>
+        </div>
       </Modal>
     </div>
   );

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import api from '../../api/axios';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import { DataTable } from '../../components/ui/DataTable';
 import toast from 'react-hot-toast';
 
 interface Passport {
@@ -12,10 +14,16 @@ interface Passport {
     _id: string;
     name: string;
     phone: string;
-    role: string;
   };
   imagePath: string;
-  ocrData: any;
+  ocrData: {
+    passportNumber: string;
+    surname: string;
+    givenNames: string;
+    dateOfBirth: string;
+    dateOfExpiry: string;
+    [key: string]: any;
+  };
   status: 'pending' | 'verified' | 'rejected';
   createdAt: string;
 }
@@ -23,40 +31,59 @@ interface Passport {
 export default function Passports() {
   const queryClient = useQueryClient();
   const [selectedPassport, setSelectedPassport] = useState<Passport | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [editData, setEditData] = useState<any>(null);
 
-  const { data: passports, isLoading } = useQuery({
-    queryKey: ['passports'],
+  // Pagination & Filtering State
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [passportNumberFilter, setPassportNumberFilter] = useState('');
+  const [surnameFilter, setSurnameFilter] = useState('');
+  const [givenNamesFilter, setGivenNamesFilter] = useState('');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['passports', pagination.pageIndex, pagination.pageSize, statusFilter, passportNumberFilter, surnameFilter, givenNamesFilter],
     queryFn: async () => {
-      const { data } = await api.get('/passport');
-      return data.data as Passport[];
+      const params = new URLSearchParams({
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        status: statusFilter,
+        passportNumber: passportNumberFilter,
+        surname: surnameFilter,
+        givenNames: givenNamesFilter,
+      });
+      const { data } = await api.get(`/passport?${params.toString()}`);
+      return data;
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      await api.put(`/passport/${id}`, { ocrData: data });
+  const passports = data?.data || [];
+  const pageCount = data?.pagination?.totalPages || 0;
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      await api.put(`/passport/${id}`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['passports'] });
-      toast.success('Passport updated successfully');
+      toast.success('Passport status updated');
       handleCloseModal();
     },
     onError: (error) => {
       console.error(error);
-      toast.error('Failed to update passport');
     },
   });
 
   const handleView = async (passport: Passport) => {
     setSelectedPassport(passport);
-    setEditData(passport.ocrData || {});
+    setIsModalOpen(true);
     try {
-      const { data } = await api.get(`/passport/image-token/${passport._id}`);
+      const { data } = await api.get(`/passport/${passport._id}/image-token`);
       const token = data.data.token;
-      const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/passport/serve/${token}`;
-      setImageUrl(url);
+      setImageUrl(`${api.defaults.baseURL}/passport/image/${token}`);
     } catch (error) {
       console.error('Failed to get image token', error);
       toast.error('Failed to load image');
@@ -64,211 +91,198 @@ export default function Passports() {
   };
 
   const handleCloseModal = () => {
+    setIsModalOpen(false);
     setSelectedPassport(null);
     setImageUrl(null);
-    setEditData(null);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setEditData((prev: any) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = () => {
+  const handleStatusUpdate = (status: 'verified' | 'rejected') => {
     if (selectedPassport) {
-      updateMutation.mutate({ id: selectedPassport._id, data: editData });
+      updateStatusMutation.mutate({ id: selectedPassport._id, status });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
+  const columns = useMemo<ColumnDef<Passport>[]>(
+    () => [
+      {
+        accessorKey: 'ocrData.passportNumber',
+        header: 'Passport Number',
+      },
+      {
+        accessorKey: 'ocrData.surname',
+        header: 'Surname',
+      },
+      {
+        accessorKey: 'ocrData.givenNames',
+        header: 'Given Names',
+      },
+      {
+        header: 'User',
+        cell: ({ row }) => (
+          <div>
+            <div className="font-bold">{row.original.userId?.name}</div>
+            <div className="text-sm opacity-50">{row.original.userId?.phone}</div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <div
+            className={`badge ${
+              row.original.status === 'verified'
+                ? 'badge-success'
+                : row.original.status === 'pending'
+                ? 'badge-warning'
+                : 'badge-error'
+            }`}
+          >
+            {row.original.status}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Uploaded At',
+        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button size="sm" variant="ghost" onClick={() => handleView(row.original)}>
+            View
+          </Button>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Passport Management</h1>
 
       <Card>
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Passport Info</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {passports?.map((passport) => (
-                <tr key={passport._id}>
-                  <td>
-                    <div>
-                      <div className="font-bold">{passport.userId?.name || 'Unknown'}</div>
-                      <div className="text-sm opacity-50">{passport.userId?.role}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="text-sm">
-                      <div>No: {passport.ocrData?.passportNumber || 'N/A'}</div>
-                      <div>Name: {passport.ocrData?.givenNames} {passport.ocrData?.surname}</div>
-                    </div>
-                  </td>
-                  <td>{new Date(passport.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <Button size="sm" variant="info" onClick={() => handleView(passport)}>
-                      Manage
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {passports?.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="text-center">
-                    No passports found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={passports}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          isLoading={isLoading}
+          filterConfigs={[
+            {
+              id: 'ocrData.passportNumber',
+              label: 'Passport No',
+              type: 'text',
+              value: passportNumberFilter,
+              onChange: (value) => {
+                setPassportNumberFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+            },
+            {
+              id: 'ocrData.surname',
+              label: 'Surname',
+              type: 'text',
+              value: surnameFilter,
+              onChange: (value) => {
+                setSurnameFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+            },
+            {
+              id: 'ocrData.givenNames',
+              label: 'Given Names',
+              type: 'text',
+              value: givenNamesFilter,
+              onChange: (value) => {
+                setGivenNamesFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+            },
+            {
+              id: 'status',
+              label: 'Status',
+              type: 'select',
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Verified', value: 'verified' },
+                { label: 'Rejected', value: 'rejected' },
+              ],
+            },
+          ]}
+        />
       </Card>
 
-      {/* Manage Modal */}
       <Modal
-        isOpen={!!selectedPassport}
+        isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title="Manage Passport"
-        className="w-11/12 max-w-7xl"
+        title="Passport Details"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column: Image */}
-          <div className="border rounded-lg overflow-hidden bg-base-200 flex justify-center items-center p-4 min-h-[500px] h-full">
-            {imageUrl ? (
-              <img src={imageUrl} alt="Passport" className="max-w-full max-h-[700px] object-contain" />
-            ) : (
-              <span className="loading loading-spinner loading-lg"></span>
-            )}
-          </div>
-
-          {/* Right Column: Form */}
-          <div className="space-y-4 h-full overflow-y-auto">
-            <div className="bg-base-100 p-4 rounded-lg border border-base-200">
-              <h4 className="font-bold mb-4 text-lg">Passport Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Passport Number</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.passportNumber || ''} 
-                    onChange={(e) => handleInputChange('passportNumber', e.target.value)}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Nationality</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.nationality || ''} 
-                    onChange={(e) => handleInputChange('nationality', e.target.value)}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Surname</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.surname || ''} 
-                    onChange={(e) => handleInputChange('surname', e.target.value)}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Given Names</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.givenNames || ''} 
-                    onChange={(e) => handleInputChange('givenNames', e.target.value)}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Date of Birth</span></label>
-                  <input 
-                    type="date" 
-                    className="input input-bordered" 
-                    value={editData?.dateOfBirth ? new Date(editData.dateOfBirth).toISOString().split('T')[0] : ''} 
-                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Sex</span></label>
-                  <select 
-                    className="select select-bordered w-full"
-                    value={editData?.sex || ''} 
-                    onChange={(e) => handleInputChange('sex', e.target.value)}
-                  >
-                    <option value="">Select...</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Date of Expiry</span></label>
-                  <input 
-                    type="date" 
-                    className="input input-bordered" 
-                    value={editData?.dateOfExpiry ? new Date(editData.dateOfExpiry).toISOString().split('T')[0] : ''} 
-                    onChange={(e) => handleInputChange('dateOfExpiry', e.target.value)}
-                  />
-                </div>
-                 <div className="form-control">
-                  <label className="label"><span className="label-text">Date of Issue</span></label>
-                  <input 
-                    type="date" 
-                    className="input input-bordered" 
-                    value={editData?.dateOfIssue ? new Date(editData.dateOfIssue).toISOString().split('T')[0] : ''} 
-                    onChange={(e) => handleInputChange('dateOfIssue', e.target.value)}
-                  />
-                </div>
-                 <div className="form-control">
-                  <label className="label"><span className="label-text">Place of Birth</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.placeOfBirth || ''} 
-                    onChange={(e) => handleInputChange('placeOfBirth', e.target.value)}
-                  />
-                </div>
-                 <div className="form-control">
-                  <label className="label"><span className="label-text">Authority</span></label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered" 
-                    value={editData?.authority || ''} 
-                    onChange={(e) => handleInputChange('authority', e.target.value)}
-                  />
-                </div>
+        {selectedPassport && (
+          <div className="space-y-4">
+            {imageUrl && (
+              <div className="w-full h-64 bg-base-200 rounded-lg overflow-hidden">
+                <img src={imageUrl} alt="Passport" className="w-full h-full object-contain" />
               </div>
-
-              <div className="modal-action justify-end mt-6">
-                <div className="flex gap-2">
-                  <Button variant="ghost" onClick={handleCloseModal}>Cancel</Button>
-                  <Button 
-                    variant="primary" 
-                    onClick={handleSave}
-                    loading={updateMutation.isPending}
-                  >
-                    Save Changes
-                  </Button>
+            )}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm opacity-70">Passport Number</p>
+                <p className="font-bold">{selectedPassport.ocrData.passportNumber}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-70">Date of Birth</p>
+                <p className="font-bold">{selectedPassport.ocrData.dateOfBirth}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-70">Surname</p>
+                <p className="font-bold">{selectedPassport.ocrData.surname}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-70">Given Names</p>
+                <p className="font-bold">{selectedPassport.ocrData.givenNames}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-70">Expiry Date</p>
+                <p className="font-bold">{selectedPassport.ocrData.dateOfExpiry}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-70">Status</p>
+                <div className={`badge ${
+                  selectedPassport.status === 'verified' ? 'badge-success' :
+                  selectedPassport.status === 'pending' ? 'badge-warning' : 'badge-error'
+                }`}>
+                  {selectedPassport.status}
                 </div>
               </div>
             </div>
+
+            {selectedPassport.status === 'pending' && (
+              <div className="modal-action">
+                <Button variant="error" onClick={() => handleStatusUpdate('rejected')}>
+                  Reject
+                </Button>
+                <Button variant="success" onClick={() => handleStatusUpdate('verified')}>
+                  Verify
+                </Button>
+              </div>
+            )}
+            <div className="modal-action">
+               <Button variant="ghost" onClick={handleCloseModal}>Close</Button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );

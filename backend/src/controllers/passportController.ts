@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/authMiddleware';
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
-import { sendSuccess, sendError } from '../utils';
+import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
 export const uploadPassport = async (req: AuthRequest, res: Response) => {
   try {
@@ -33,10 +33,55 @@ export const uploadPassport = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getPassports = async (_req: Request, res: Response) => {
+export const getPassports = async (req: Request, res: Response) => {
   try {
-    const passports = await Passport.find().sort({ createdAt: -1 }).populate('userId', 'name phone role');
-    sendSuccess(res, passports);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+    const search = req.query.search as string;
+
+    const passportNumber = req.query.passportNumber as string;
+    const givenNames = req.query.givenNames as string;
+    const surname = req.query.surname as string;
+
+    const query: any = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (passportNumber) {
+      query['ocrData.passportNumber'] = { $regex: passportNumber, $options: 'i' };
+    }
+    if (givenNames) {
+      query['ocrData.givenNames'] = { $regex: givenNames, $options: 'i' };
+    }
+    if (surname) {
+      query['ocrData.surname'] = { $regex: surname, $options: 'i' };
+    }
+
+    if (search) {
+      // This is a bit complex because we need to search in populated fields or ocrData
+      // For simplicity, let's search in ocrData
+      query.$or = [
+        { 'ocrData.passportNumber': { $regex: search, $options: 'i' } },
+        { 'ocrData.givenNames': { $regex: search, $options: 'i' } },
+        { 'ocrData.surname': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [passports, total] = await Promise.all([
+      Passport.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name phone role'),
+      Passport.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, passports, total, page, limit);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
@@ -45,8 +90,27 @@ export const getPassports = async (_req: Request, res: Response) => {
 export const getMyPassports = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!._id;
-    const passports = await Passport.find({ userId }).sort({ createdAt: -1 });
-    sendSuccess(res, passports);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+
+    const query: any = { userId };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [passports, total] = await Promise.all([
+      Passport.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Passport.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, passports, total, page, limit);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }

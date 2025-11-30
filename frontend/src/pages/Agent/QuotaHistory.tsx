@@ -1,7 +1,9 @@
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import api from '../../api/axios';
 import Card from '../../components/ui/Card';
-import { format } from 'date-fns';
+import { DataTable } from '../../components/ui/DataTable';
 
 interface QuotaTransaction {
   _id: string;
@@ -10,10 +12,7 @@ interface QuotaTransaction {
   creditCost: number;
   agentQuotaBefore: number;
   agentQuotaAfter: number;
-  agentCreditBefore?: number;
-  agentCreditAfter?: number;
   childId?: {
-    _id: string;
     name: string;
     phone: string;
   };
@@ -21,83 +20,124 @@ interface QuotaTransaction {
 }
 
 export default function QuotaHistory() {
-  const { data: transactions, isLoading } = useQuery({
-    queryKey: ['quotaHistory'],
+  // Pagination & Filtering State
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['quotaHistory', pagination.pageIndex, pagination.pageSize, typeFilter],
     queryFn: async () => {
-      const { data } = await api.get('/quota/history');
-      return data.data as QuotaTransaction[];
+      const params = new URLSearchParams({
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        type: typeFilter,
+      });
+      const { data } = await api.get(`/quota/history?${params.toString()}`);
+      return data;
     },
   });
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'normal':
-        return <span className="badge badge-success">Purchase (Normal)</span>;
-      case 'extraPool':
-        return <span className="badge badge-warning">Purchase (Extra)</span>;
-      case 'agentToChild':
-        return <span className="badge badge-info">Transfer to Child</span>;
-      case 'liveToPool':
-        return <span className="badge badge-error">Return to Pool</span>;
-      default:
-        return <span className="badge badge-ghost">{type}</span>;
-    }
-  };
+  const transactions = data?.data || [];
+  const pageCount = data?.pagination?.totalPages || 0;
+
+  const columns = useMemo<ColumnDef<QuotaTransaction>[]>(
+    () => [
+      {
+        accessorKey: 'type',
+        header: 'Type',
+        cell: ({ row }) => {
+          const type = row.original.type;
+          let label: string = type;
+          let className = 'badge badge-ghost';
+
+          if (type === 'normal') {
+            label = 'Purchase (Normal)';
+            className = 'badge badge-info';
+          } else if (type === 'extraPool') {
+            label = 'Purchase (Extra)';
+            className = 'badge badge-warning';
+          } else if (type === 'agentToChild') {
+            label = 'Transfer to Child';
+            className = 'badge badge-primary';
+          } else if (type === 'liveToPool') {
+            label = 'Return to Pool';
+            className = 'badge badge-secondary';
+          }
+
+          return <div className={className}>{label}</div>;
+        },
+      },
+      {
+        accessorKey: 'quantity',
+        header: 'Quantity',
+        cell: ({ row }) => <span className="font-bold">{row.original.quantity}</span>,
+      },
+      {
+        accessorKey: 'creditCost',
+        header: 'Cost (Credits)',
+        cell: ({ row }) => row.original.creditCost > 0 ? row.original.creditCost : '-',
+      },
+      {
+        header: 'Balance After',
+        cell: ({ row }) => row.original.agentQuotaAfter,
+      },
+      {
+        header: 'Details',
+        cell: ({ row }) => {
+          if (row.original.type === 'agentToChild' && row.original.childId) {
+            return (
+              <div className="text-xs">
+                To: {row.original.childId.name} ({row.original.childId.phone})
+              </div>
+            );
+          }
+          return '-';
+        },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Date',
+        cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Quota Transaction History</h1>
+      <h1 className="text-3xl font-bold">Quota History</h1>
 
       <Card>
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Quantity</th>
-                <th>Cost (Credit)</th>
-                <th>Balance After</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions?.map((tx) => (
-                <tr key={tx._id}>
-                  <td>{format(new Date(tx.createdAt), 'PPpp')}</td>
-                  <td>{getTypeLabel(tx.type)}</td>
-                  <td className={tx.type === 'agentToChild' || tx.type === 'liveToPool' ? 'text-error' : 'text-success'}>
-                    {tx.type === 'agentToChild' || tx.type === 'liveToPool' ? '-' : '+'}{tx.quantity}
-                  </td>
-                  <td>{tx.creditCost > 0 ? tx.creditCost : '-'}</td>
-                  <td>{tx.agentQuotaAfter}</td>
-                  <td>
-                    {tx.type === 'agentToChild' && tx.childId && (
-                      <span className="text-xs">To: {tx.childId.name} ({tx.childId.phone})</span>
-                    )}
-                    {tx.type === 'liveToPool' && (
-                      <span className="text-xs">Returned to Global Pool</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {(!transactions || transactions.length === 0) && !isLoading && (
-                <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    No transactions found
-                  </td>
-                </tr>
-              )}
-              {isLoading && (
-                <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    <span className="loading loading-spinner"></span>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={transactions}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          isLoading={isLoading}
+          filterConfigs={[
+            {
+              id: 'type',
+              label: 'Type',
+              type: 'select',
+              value: typeFilter,
+              onChange: (value) => {
+                setTypeFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Types', value: 'all' },
+                { label: 'Purchase (Normal)', value: 'normal' },
+                { label: 'Purchase (Extra)', value: 'extraPool' },
+                { label: 'Transfer to Child', value: 'agentToChild' },
+                { label: 'Return to Pool', value: 'liveToPool' },
+              ],
+            },
+          ]}
+        />
       </Card>
     </div>
   );

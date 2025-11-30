@@ -4,7 +4,7 @@ import { CreditRequest } from '../models/CreditRequest';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
 // import { getIO } from '../socket';
-import { sendSuccess, sendError } from '../utils';
+import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
 export const requestCredit = async (req: AuthRequest, res: Response) => {
   try {
@@ -44,8 +44,15 @@ export const getCreditRequests = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!._id;
     const userRole = req.user!.role;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
 
-    let filter = {};
+    const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
+    const maxAmount = req.query.maxAmount ? Number(req.query.maxAmount) : undefined;
+    const paymentMethod = req.query.paymentMethod as string;
+
+    let filter: any = {};
 
     if (userRole === 'superadmin') {
       // SuperAdmin sees requests from Agents
@@ -61,11 +68,32 @@ export const getCreditRequests = async (req: AuthRequest, res: Response) => {
       return sendError(res, 'Not authorized', 403);
     }
 
-    const requests = await CreditRequest.find(filter)
-      .sort({ createdAt: -1 })
-      .populate('agentId', 'name phone role');
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
 
-    sendSuccess(res, requests);
+    if (minAmount !== undefined) {
+      filter.amount = { ...filter.amount, $gte: minAmount };
+    }
+    if (maxAmount !== undefined) {
+      filter.amount = { ...filter.amount, $lte: maxAmount };
+    }
+    if (paymentMethod && paymentMethod !== 'all') {
+      filter.paymentMethod = paymentMethod;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [requests, total] = await Promise.all([
+      CreditRequest.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('agentId', 'name phone role'),
+      CreditRequest.countDocuments(filter),
+    ]);
+
+    sendPaginatedSuccess(res, requests, total, page, limit);
   } catch (error) {
     console.error(error);
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');

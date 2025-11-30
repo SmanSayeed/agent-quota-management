@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import api from '../../api/axios';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import { DataTable } from '../../components/ui/DataTable';
 import toast from 'react-hot-toast';
 
 interface PaymentDetails {
@@ -34,13 +36,30 @@ export default function AgentQuotaRequests() {
   const [selectedRequest, setSelectedRequest] = useState<QuotaRequest | null>(null);
   const [approvedAmount, setApprovedAmount] = useState<string>('');
 
-  const { data: quotaRequests, isLoading } = useQuery({
-    queryKey: ['quotaRequests'],
+  // Pagination & Filtering State
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['quotaRequests', pagination.pageIndex, pagination.pageSize, statusFilter, paymentMethodFilter],
     queryFn: async () => {
-      const { data } = await api.get('/quota-request');
-      return data.data as QuotaRequest[];
+      const params = new URLSearchParams({
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        status: statusFilter,
+        paymentMethod: paymentMethodFilter,
+      });
+      const { data } = await api.get(`/quota-request?${params.toString()}`);
+      return data;
     },
   });
+
+  const quotaRequests = data?.data || [];
+  const pageCount = data?.pagination?.totalPages || 0;
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
@@ -93,108 +112,111 @@ export default function AgentQuotaRequests() {
     approveMutation.mutate({ id: selectedRequest._id, amount });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
-
-  const pendingRequests = quotaRequests?.filter(r => r.status === 'pending') || [];
-  const processedRequests = quotaRequests?.filter(r => r.status !== 'pending') || [];
+  const columns = useMemo<ColumnDef<QuotaRequest>[]>(
+    () => [
+      {
+        header: 'Child Agent',
+        cell: ({ row }) => row.original.childId?.name || 'Unknown',
+      },
+      {
+        header: 'Phone',
+        cell: ({ row }) => row.original.childId?.phone || 'N/A',
+      },
+      {
+        accessorKey: 'amount',
+        header: 'Amount',
+        cell: ({ row }) => <span className="font-bold">{row.original.amount}</span>,
+      },
+      {
+        accessorKey: 'paymentMethod',
+        header: 'Payment Method',
+        cell: ({ row }) => (
+          <div className="badge badge-outline">
+            {row.original.paymentMethod === 'mobile_banking' ? 'Mobile Banking' : 'Bank Transfer'}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <div
+            className={`badge ${
+              row.original.status === 'approved'
+                ? 'badge-success'
+                : row.original.status === 'pending'
+                ? 'badge-warning'
+                : 'badge-error'
+            }`}
+          >
+            {row.original.status}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Date',
+        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button size="sm" onClick={() => handleViewDetails(row.original)}>
+            View Details
+          </Button>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Quota Requests from Child Agents</h1>
 
-      <Card title="Pending Requests">
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Child Agent</th>
-                <th>Phone</th>
-                <th>Amount</th>
-                <th>Payment Method</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingRequests.map((request) => (
-                <tr key={request._id}>
-                  <td>{request.childId?.name || 'Unknown'}</td>
-                  <td>{request.childId?.phone || 'N/A'}</td>
-                  <td className="font-bold">{request.amount}</td>
-                  <td>
-                    <div className="badge badge-outline">
-                      {request.paymentMethod === 'mobile_banking' ? 'Mobile Banking' : 'Bank Transfer'}
-                    </div>
-                  </td>
-                  <td>{new Date(request.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      onClick={() => handleViewDetails(request)}
-                    >
-                      View Details
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {pendingRequests.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center">
-                    No pending quota requests
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Card title="Request History">
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Child Agent</th>
-                <th>Phone</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {processedRequests.map((request) => (
-                <tr key={request._id}>
-                  <td>{request.childId?.name || 'Unknown'}</td>
-                  <td>{request.childId?.phone || 'N/A'}</td>
-                  <td>{request.amount}</td>
-                  <td>
-                    <div
-                      className={`badge ${
-                        request.status === 'approved' ? 'badge-success' : 'badge-error'
-                      }`}
-                    >
-                      {request.status}
-                    </div>
-                  </td>
-                  <td>{new Date(request.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-              {processedRequests.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center">
-                    No request history
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <Card>
+        <DataTable
+          columns={columns}
+          data={quotaRequests}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          isLoading={isLoading}
+          filterConfigs={[
+            {
+              id: 'status',
+              label: 'Status',
+              type: 'select',
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Approved', value: 'approved' },
+                { label: 'Rejected', value: 'rejected' },
+              ],
+            },
+            {
+              id: 'paymentMethod',
+              label: 'Payment Method',
+              type: 'select',
+              value: paymentMethodFilter,
+              onChange: (value) => {
+                setPaymentMethodFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Methods', value: 'all' },
+                { label: 'Bank Transfer', value: 'bank_transfer' },
+                { label: 'Mobile Banking', value: 'mobile_banking' },
+              ],
+            },
+          ]}
+        />
       </Card>
 
       {/* Details Modal */}

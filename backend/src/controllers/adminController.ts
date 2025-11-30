@@ -3,12 +3,55 @@ import { User } from '../models/User';
 import { Pool } from '../models/Pool';
 import { SystemSettings } from '../models/SystemSettings';
 import { getIO } from '../socket';
-import { sendSuccess, sendError } from '../utils';
+import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
-export const getAgents = async (_req: Request, res: Response) => {
+export const getAgents = async (req: Request, res: Response) => {
   try {
-    const agents = await User.find({ role: { $in: ['agent', 'child'] } }).select('-password');
-    sendSuccess(res, agents);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+
+    const name = req.query.name as string;
+    const phone = req.query.phone as string;
+    const email = req.query.email as string;
+
+    const query: any = { role: { $in: ['agent', 'child'] } };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+    if (phone) {
+      query.phone = { $regex: phone, $options: 'i' };
+    }
+    if (email) {
+      query.email = { $regex: email, $options: 'i' };
+    }
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [agents, total] = await Promise.all([
+      User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, agents, total, page, limit);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }

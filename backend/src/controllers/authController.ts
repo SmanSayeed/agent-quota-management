@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
-import { generateToken, clearToken, sendSuccess, sendError } from '../utils';
+import { generateToken, clearToken, sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // @desc    Auth user & get token
@@ -114,8 +114,46 @@ export const logout = (_req: Request, res: Response) => {
 // @access  Private (Agent)
 export const getMyChildren = async (req: AuthRequest, res: Response) => {
   try {
-    const children = await User.find({ parentId: req.user!._id }).select('-password');
-    sendSuccess(res, children);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+
+    const name = req.query.name as string;
+    const phone = req.query.phone as string;
+
+    const query: any = { parentId: req.user!._id };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+    if (phone) {
+      query.phone = { $regex: phone, $options: 'i' };
+    }
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [children, total] = await Promise.all([
+      User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, children, total, page, limit);
   } catch (error) {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }

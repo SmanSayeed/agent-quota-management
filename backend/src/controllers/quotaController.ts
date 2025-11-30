@@ -6,7 +6,7 @@ import { SystemSettings } from '../models/SystemSettings';
 import { QuotaTransaction } from '../models/QuotaTransaction';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { getIO } from '../socket';
-import { sendSuccess, sendError } from '../utils';
+import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
 /**
  * Purchase quota (normal + extra from pool)
@@ -243,12 +243,27 @@ export const getPoolInfo = async (_req: AuthRequest, res: Response) => {
 export const getQuotaHistory = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const type = req.query.type as string;
     
-    const transactions = await QuotaTransaction.find({ agentId: userId })
-      .sort({ createdAt: -1 })
-      .populate('childId', 'name phone'); // Populate child info if it's a transfer
+    const skip = (page - 1) * limit;
+    const query: any = { agentId: userId };
 
-    sendSuccess(res, transactions);
+    if (type && type !== 'all') {
+      query.type = type;
+    }
+
+    const [transactions, total] = await Promise.all([
+      QuotaTransaction.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('childId', 'name phone'),
+      QuotaTransaction.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, transactions, total, page, limit);
   } catch (error: any) {
     sendError(res, error.message, 500);
   }

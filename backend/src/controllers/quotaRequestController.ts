@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { QuotaRequest } from '../models/QuotaRequest';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { sendSuccess, sendError } from '../utils';
+import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
 // Child requests quota from parent
 export const requestQuota = async (req: AuthRequest, res: Response) => {
@@ -50,12 +50,42 @@ export const requestQuota = async (req: AuthRequest, res: Response) => {
 export const getQuotaRequests = async (req: AuthRequest, res: Response) => {
   try {
     const parentId = req.user!._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
 
-    const quotaRequests = await QuotaRequest.find({ parentId })
-      .populate('childId', 'name phone')
-      .sort({ createdAt: -1 });
+    const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
+    const maxAmount = req.query.maxAmount ? Number(req.query.maxAmount) : undefined;
+    const paymentMethod = req.query.paymentMethod as string;
 
-    sendSuccess(res, quotaRequests);
+    const query: any = { parentId };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (minAmount !== undefined) {
+      query.amount = { ...query.amount, $gte: minAmount };
+    }
+    if (maxAmount !== undefined) {
+      query.amount = { ...query.amount, $lte: maxAmount };
+    }
+    if (paymentMethod && paymentMethod !== 'all') {
+      query.paymentMethod = paymentMethod;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [quotaRequests, total] = await Promise.all([
+      QuotaRequest.find(query)
+        .populate('childId', 'name phone')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      QuotaRequest.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, quotaRequests, total, page, limit);
   } catch (error) {
     console.error(error);
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
@@ -155,11 +185,41 @@ export const rejectQuotaRequest = async (req: AuthRequest, res: Response) => {
 export const getMyQuotaRequests = async (req: AuthRequest, res: Response) => {
   try {
     const childId = req.user!._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
 
-    const quotaRequests = await QuotaRequest.find({ childId })
-      .sort({ createdAt: -1 });
+    const minAmount = req.query.minAmount ? Number(req.query.minAmount) : undefined;
+    const maxAmount = req.query.maxAmount ? Number(req.query.maxAmount) : undefined;
+    const paymentMethod = req.query.paymentMethod as string;
 
-    sendSuccess(res, quotaRequests);
+    const query: any = { childId };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (minAmount !== undefined) {
+      query.amount = { ...query.amount, $gte: minAmount };
+    }
+    if (maxAmount !== undefined) {
+      query.amount = { ...query.amount, $lte: maxAmount };
+    }
+    if (paymentMethod && paymentMethod !== 'all') {
+      query.paymentMethod = paymentMethod;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [quotaRequests, total] = await Promise.all([
+      QuotaRequest.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      QuotaRequest.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, quotaRequests, total, page, limit);
   } catch (error) {
     console.error(error);
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');

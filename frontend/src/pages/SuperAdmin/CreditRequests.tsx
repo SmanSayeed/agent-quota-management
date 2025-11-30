@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import api from '../../api/axios';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
+import { DataTable } from '../../components/ui/DataTable';
 import toast from 'react-hot-toast';
 
 interface PaymentDetails {
@@ -37,13 +39,30 @@ export default function CreditRequests() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const { data: requests, isLoading } = useQuery({
-    queryKey: ['creditRequests'],
+  // Pagination & Filtering State
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['creditRequests', pagination.pageIndex, pagination.pageSize, statusFilter, paymentMethodFilter],
     queryFn: async () => {
-      const { data } = await api.get('/credit');
-      return data.data as CreditRequest[];
+      const params = new URLSearchParams({
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        status: statusFilter,
+        paymentMethod: paymentMethodFilter,
+      });
+      const { data } = await api.get(`/credit?${params.toString()}`);
+      return data;
     },
   });
+
+  const requests = data?.data || [];
+  const pageCount = data?.pagination?.totalPages || 0;
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
@@ -114,92 +133,126 @@ export default function CreditRequests() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
+  const columns = useMemo<ColumnDef<CreditRequest>[]>(
+    () => [
+      {
+        header: 'Agent',
+        cell: ({ row }) => (
+          <div>
+            <div className="font-bold">{row.original.agentId?.name || 'Unknown'}</div>
+            <div className="text-sm opacity-50">{row.original.agentId?.phone}</div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'amount',
+        header: 'Requested Amount',
+      },
+      {
+        accessorKey: 'paymentMethod',
+        header: 'Payment Method',
+        cell: ({ row }) => (
+          <div className="badge badge-outline">
+            {row.original.paymentMethod === 'mobile_banking' ? 'Mobile Banking' : 'Bank Transfer'}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <div
+            className={`badge ${
+              row.original.status === 'approved'
+                ? 'badge-success'
+                : row.original.status === 'pending'
+                ? 'badge-warning'
+                : 'badge-error'
+            }`}
+          >
+            {row.original.status}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Date',
+        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          row.original.status === 'pending' && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="success"
+                onClick={() => handleApproveClick(row.original)}
+              >
+                Review & Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="error"
+                onClick={() => handleRejectClick(row.original._id)}
+              >
+                Reject
+              </Button>
+            </div>
+          )
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Credit Requests</h1>
 
       <Card>
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Requested Amount</th>
-                <th>Payment Method</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests?.map((req) => (
-                <tr key={req._id}>
-                  <td>
-                    <div>
-                      <div className="font-bold">{req.agentId?.name || 'Unknown'}</div>
-                      <div className="text-sm opacity-50">{req.agentId?.phone}</div>
-                    </div>
-                  </td>
-                  <td>{req.amount}</td>
-                  <td>
-                    <div className="badge badge-outline">
-                      {req.paymentMethod === 'mobile_banking' ? 'Mobile Banking' : 'Bank Transfer'}
-                    </div>
-                  </td>
-                  <td>
-                    <div
-                      className={`badge ${
-                        req.status === 'approved'
-                          ? 'badge-success'
-                          : req.status === 'pending'
-                          ? 'badge-warning'
-                          : 'badge-error'
-                      }`}
-                    >
-                      {req.status}
-                    </div>
-                  </td>
-                  <td>{new Date(req.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    {req.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => handleApproveClick(req)}
-                        >
-                          Review & Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="error"
-                          onClick={() => handleRejectClick(req._id)}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {requests?.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center">
-                    No credit requests found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={requests}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          isLoading={isLoading}
+          filterConfigs={[
+            {
+              id: 'status',
+              label: 'Status',
+              type: 'select',
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Approved', value: 'approved' },
+                { label: 'Rejected', value: 'rejected' },
+              ],
+            },
+            {
+              id: 'paymentMethod',
+              label: 'Payment Method',
+              type: 'select',
+              value: paymentMethodFilter,
+              onChange: (value) => {
+                setPaymentMethodFilter(value);
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              },
+              options: [
+                { label: 'All Methods', value: 'all' },
+                { label: 'Bank Transfer', value: 'bank_transfer' },
+                { label: 'Mobile Banking', value: 'mobile_banking' },
+              ],
+            },
+          ]}
+        />
       </Card>
 
       {/* Approve Modal with Payment Details */}

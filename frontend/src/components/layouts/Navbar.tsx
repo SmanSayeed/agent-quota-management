@@ -104,7 +104,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             className="btn btn-ghost btn-circle avatar placeholder min-h-[2.75rem] min-w-[2.75rem]"
             aria-label="User menu"
           >
-            <div className="bg-neutral text-neutral-content rounded-full w-9 h-9 sm:w-10 sm:h-10">
+            <div className="bg-neutral text-neutral-content rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center">
               <span className="text-lg sm:text-xl">{user?.name?.charAt(0).toUpperCase()}</span>
             </div>
           </div>

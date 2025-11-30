@@ -194,7 +194,7 @@ export default function ProfilePage() {
           {/* User Avatar */}
           <div className="flex items-center gap-4 mb-6">
             <div className="avatar placeholder">
-              <div className="bg-primary text-primary-content rounded-full w-20 h-20">
+              <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
                 <span className="text-3xl">{user?.name?.charAt(0).toUpperCase()}</span>
               </div>
             </div>

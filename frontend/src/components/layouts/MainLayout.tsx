@@ -17,7 +17,7 @@ export default function MainLayout() {
       />
       <div className="drawer-content flex flex-col min-h-screen bg-base-100">
         <Navbar onMenuClick={() => setIsDrawerOpen(!isDrawerOpen)} />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

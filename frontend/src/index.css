@@ -40,3 +40,77 @@
 .animate-flash {
   animation: flash 0.5s ease-in-out 3;
 }
+
+/* Mobile-friendly improvements */
+* {
+  /* Smooth scrolling on all devices */
+  -webkit-overflow-scrolling: touch;
+  /* Better font rendering on mobile */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize tap highlights for mobile */
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for desktop, hidden on mobile */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(155, 155, 155, 0.7);
+}
+
+/* Hide scrollbar on mobile for tables */
+@media (max-width: 640px) {
+  .scrollbar-thin::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-thin {
+    scrollbar-width: none;
+  }
+}
+
+/* Ensure touch-friendly spacing on all interactive elements */
+@media (max-width: 640px) {
+  /* Make sure all clickable items have adequate spacing */
+  button, 
+  a,
+  .btn,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 2.75rem;
+  }
+  
+  /* Improve form element sizing */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}

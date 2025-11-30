@@ -11,20 +11,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="form-control w-full">
         {label && (
-          <label className="label">
-            <span className="label-text">{label}</span>
+          <label className="label pb-1">
+            <span className="label-text text-xs sm:text-sm font-medium">{label}</span>
           </label>
         )}
         <input
           ref={ref}
           className={`input ${bordered ? 'input-bordered' : ''} ${
             error ? 'input-error' : ''
-          } w-full ${className}`}
+          } w-full min-h-[2.75rem] text-sm sm:text-base ${className}`}
           {...props}
         />
         {error && (
-          <label className="label">
-            <span className="label-text-alt text-error">{error}</span>
+          <label className="label pt-1">
+            <span className="label-text-alt text-error text-xs">{error}</span>
           </label>
         )}
       </div>

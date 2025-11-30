@@ -243,25 +243,25 @@ export default function UploadPassport() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Upload Passport</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold">Upload Passport</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card title="Passport Image">
-          {/* Drag and Drop Zone */}
+          {/* Drag and Drop Zone - Optimized for touch */}
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-lg p-4 sm:p-8 text-center cursor-pointer transition-colors min-h-[200px] flex flex-col items-center justify-center ${
               isDragActive
                 ? 'border-primary bg-primary/10'
-                : 'border-base-300 hover:border-primary/50'
+                : 'border-base-300 hover:border-primary/50 active:bg-base-200'
             } ${isOcrProcessing || uploadMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 sm:gap-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-12 w-12 text-base-content/50"
+                className="h-10 w-10 sm:h-12 sm:w-12 text-base-content/50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -274,11 +274,12 @@ export default function UploadPassport() {
                 />
               </svg>
               {isDragActive ? (
-                <p className="text-primary font-medium">Drop the passport image here...</p>
+                <p className="text-primary font-medium text-sm sm:text-base">Drop the passport image here...</p>
               ) : (
                 <>
-                  <p className="font-medium">Drag & drop passport image here</p>
-                  <p className="text-sm text-base-content/60">or click to browse</p>
+                  <p className="font-medium text-sm sm:text-base hidden sm:block">Drag & drop passport image here</p>
+                  <p className="font-medium text-sm sm:text-base sm:hidden">Tap to take photo or upload</p>
+                  <p className="text-xs sm:text-sm text-base-content/60">or click to browse</p>
                 </>
               )}
             </div>
@@ -296,23 +297,23 @@ export default function UploadPassport() {
           {isOcrProcessing && (
             <div className="mt-4">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Processing OCR...</span>
-                <span className="text-sm font-medium">{Math.round(ocrProgress * 100)}%</span>
+                <span className="text-xs sm:text-sm font-medium">Processing OCR...</span>
+                <span className="text-xs sm:text-sm font-medium">{Math.round(ocrProgress * 100)}%</span>
               </div>
-              <progress className="progress progress-primary w-full" value={ocrProgress * 100} max="100"></progress>
+              <progress className="progress progress-primary w-full h-2" value={ocrProgress * 100} max="100"></progress>
             </div>
           )}
 
           {previewUrl && (
             <div className="mt-4 border rounded-lg overflow-hidden bg-base-200 flex justify-center">
-              <img src={previewUrl} alt="Passport Preview" className="max-h-96 object-contain" />
+              <img src={previewUrl} alt="Passport Preview" className="max-h-64 sm:max-h-96 w-full object-contain" />
             </div>
           )}
         </Card>
 
         <Card title="Passport Details">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <Input
                 label="Passport Number"
                 error={errors.passportNumber?.message}
@@ -326,7 +327,7 @@ export default function UploadPassport() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <Input
                 label="Surname"
                 error={errors.surname?.message}
@@ -339,29 +340,29 @@ export default function UploadPassport() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text">Date of Birth</span>
+                <label className="label pb-1">
+                  <span className="label-text text-xs sm:text-sm font-medium">Date of Birth</span>
                 </label>
                 <input
                   type="date"
-                  className="input input-bordered w-full"
+                  className="input input-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
                   {...register('dateOfBirth')}
                 />
                 {errors.dateOfBirth && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.dateOfBirth.message}</span>
+                  <label className="label pt-1">
+                    <span className="label-text-alt text-error text-xs">{errors.dateOfBirth.message}</span>
                   </label>
                 )}
               </div>
 
               <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text">Sex</span>
+                <label className="label pb-1">
+                  <span className="label-text text-xs sm:text-sm font-medium">Sex</span>
                 </label>
                 <select
-                  className="select select-bordered w-full"
+                  className="select select-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
                   {...register('sex')}
                 >
                   <option value="">Select...</option>
@@ -369,8 +370,8 @@ export default function UploadPassport() {
                   <option value="Female">Female</option>
                 </select>
                 {errors.sex && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.sex.message}</span>
+                  <label className="label pt-1">
+                    <span className="label-text-alt text-error text-xs">{errors.sex.message}</span>
                   </label>
                 )}
               </div>
@@ -383,35 +384,35 @@ export default function UploadPassport() {
               {...register('placeOfBirth')}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text">Date of Issue (Optional)</span>
+                <label className="label pb-1">
+                  <span className="label-text text-xs sm:text-sm font-medium">Date of Issue (Optional)</span>
                 </label>
                 <input
                   type="date"
-                  className="input input-bordered w-full"
+                  className="input input-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
                   {...register('dateOfIssue')}
                 />
                 {errors.dateOfIssue && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.dateOfIssue.message}</span>
+                  <label className="label pt-1">
+                    <span className="label-text-alt text-error text-xs">{errors.dateOfIssue.message}</span>
                   </label>
                 )}
               </div>
 
               <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text">Date of Expiry</span>
+                <label className="label pb-1">
+                  <span className="label-text text-xs sm:text-sm font-medium">Date of Expiry</span>
                 </label>
                 <input
                   type="date"
-                  className="input input-bordered w-full"
+                  className="input input-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
                   {...register('dateOfExpiry')}
                 />
                 {errors.dateOfExpiry && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.dateOfExpiry.message}</span>
+                  <label className="label pt-1">
+                    <span className="label-text-alt text-error text-xs">{errors.dateOfExpiry.message}</span>
                   </label>
                 )}
               </div>
@@ -424,12 +425,13 @@ export default function UploadPassport() {
               {...register('authority')}
             />
 
-            <div className="card-actions justify-end mt-6">
+            <div className="card-actions justify-end mt-4 sm:mt-6 gap-3">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleReset}
                 disabled={uploadMutation.isPending}
+                className="flex-1 sm:flex-none"
               >
                 Reset
               </Button>
@@ -437,6 +439,7 @@ export default function UploadPassport() {
                 type="submit"
                 loading={uploadMutation.isPending || isOcrProcessing}
                 disabled={!selectedFile}
+                className="flex-1 sm:flex-none"
               >
                 Submit Passport
               </Button>

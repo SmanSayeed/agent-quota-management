@@ -75,16 +75,16 @@ export default function RequestCredit() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Request Credit</h1>
-        <Button variant="ghost" onClick={() => navigate('/agent/dashboard')}>
-          Back to Dashboard
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">Request Credit</h1>
+        <Button variant="ghost" onClick={() => navigate('/agent/dashboard')} className="self-start sm:self-auto -ml-2 sm:ml-0">
+          ← Back to Dashboard
         </Button>
       </div>
 
       <Card title="Payment Details">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 max-w-2xl">
           <Input
             label="Amount"
             type="number"
@@ -93,11 +93,11 @@ export default function RequestCredit() {
           />
 
           <div className="form-control w-full">
-            <label className="label">
-              <span className="label-text">Payment Method</span>
+            <label className="label pb-1">
+              <span className="label-text text-xs sm:text-sm font-medium">Payment Method</span>
             </label>
             <select
-              className="select select-bordered w-full"
+              className="select select-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
               {...register('paymentMethod')}
               onChange={(e) => setPaymentMethod(e.target.value as 'bank_transfer' | 'mobile_banking')}
             >
@@ -109,11 +109,11 @@ export default function RequestCredit() {
           {paymentMethod === 'mobile_banking' ? (
             <>
               <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text">Provider</span>
+                <label className="label pb-1">
+                  <span className="label-text text-xs sm:text-sm font-medium">Provider</span>
                 </label>
                 <select
-                  className="select select-bordered w-full"
+                  className="select select-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
                   {...register('provider')}
                 >
                   <option value="">Select Provider</option>
@@ -122,8 +122,8 @@ export default function RequestCredit() {
                   <option value="Rocket">Rocket</option>
                 </select>
                 {errors.provider && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.provider.message}</span>
+                  <label className="label pt-1">
+                    <span className="label-text-alt text-error text-xs">{errors.provider.message}</span>
                   </label>
                 )}
               </div>
@@ -159,29 +159,30 @@ export default function RequestCredit() {
           />
 
           <div className="form-control w-full">
-            <label className="label">
-              <span className="label-text">Transaction Date</span>
+            <label className="label pb-1">
+              <span className="label-text text-xs sm:text-sm font-medium">Transaction Date</span>
             </label>
             <input
               type="date"
-              className="input input-bordered w-full"
+              className="input input-bordered w-full min-h-[2.75rem] text-sm sm:text-base"
               {...register('transactionDate')}
             />
             {errors.transactionDate && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.transactionDate.message}</span>
+              <label className="label pt-1">
+                <span className="label-text-alt text-error text-xs">{errors.transactionDate.message}</span>
               </label>
             )}
           </div>
 
-          <div className="alert alert-info text-sm">
+          <div className="alert alert-info text-xs sm:text-sm p-3">
             <span>Please ensure all payment details are correct before submitting.</span>
           </div>
 
-          <div className="card-actions justify-end mt-6">
+          <div className="card-actions justify-end mt-4 sm:mt-6">
             <Button
               type="submit"
               loading={uploadMutation.isPending}
+              className="w-full sm:w-auto"
             >
               Submit Request
             </Button>

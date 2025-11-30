@@ -101,26 +101,26 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
-        <Button onClick={() => setShowCreateModal(true)}>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">Super Admin Dashboard</h1>
+        <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
           Create Superadmin
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card title="Live Pool Status">
-          <div className="flex items-center justify-center p-6">
+          <div className="flex items-center justify-center p-4 sm:p-6">
             <LivePoolQuota showLabel={false} />
           </div>
           <div className="text-center mt-2">
-            <div className="stat-desc">Global pool for all agents</div>
+            <div className="stat-desc text-xs sm:text-sm">Global pool for all agents</div>
           </div>
         </Card>
 
         <Card title="Global Settings">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             <Input
               label="Daily Purchase Limit (for all agents)"
               type="number"
@@ -143,12 +143,12 @@ export default function SuperAdminDashboard() {
               {...register('quotaPrice')}
             />
 
-            <div className="alert alert-info text-sm">
+            <div className="alert alert-info text-xs sm:text-sm">
               <span>These settings affect all agents globally.</span>
             </div>
 
             <div className="card-actions justify-end">
-              <Button type="submit" loading={isSubmitting}>
+              <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
                 Update Settings
               </Button>
             </div>
@@ -159,9 +159,9 @@ export default function SuperAdminDashboard() {
       {/* Create Superadmin Modal */}
       {showCreateModal && (
         <div className="modal modal-open">
-          <div className="modal-box">
+          <div className="modal-box max-w-md w-[95%] sm:w-full">
             <h3 className="font-bold text-lg mb-4">Create New Superadmin</h3>
-            <form onSubmit={handleSubmitSuperadmin(onCreateSuperadmin)} className="space-y-4">
+            <form onSubmit={handleSubmitSuperadmin(onCreateSuperadmin)} className="space-y-3 sm:space-y-4">
               <Input
                 label="Name"
                 error={superadminErrors.name?.message}
@@ -179,11 +179,11 @@ export default function SuperAdminDashboard() {
                 {...registerSuperadmin('password')}
               />
 
-              <div className="alert alert-warning text-sm">
+              <div className="alert alert-warning text-xs sm:text-sm">
                 <span>The new superadmin will have full system control.</span>
               </div>
 
-              <div className="modal-action">
+              <div className="modal-action flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -191,10 +191,11 @@ export default function SuperAdminDashboard() {
                     setShowCreateModal(false);
                     resetSuperadmin();
                   }}
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" loading={isSubmittingSuperadmin}>
+                <Button type="submit" loading={isSubmittingSuperadmin} className="w-full sm:w-auto order-1 sm:order-2">
                   Create Superadmin
                 </Button>
               </div>

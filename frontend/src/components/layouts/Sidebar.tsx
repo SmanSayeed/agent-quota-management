@@ -115,13 +115,14 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
           isCollapsed ? 'w-20' : 'w-64'
         } ${className}`}
       >
-        <div className="mb-6 px-2 flex justify-between items-center">
+        <div className="mb-6 px-2 flex justify-between items-center min-h-[2.5rem]">
           {!isCollapsed && <h2 className="text-2xl font-bold text-primary truncate">AMS</h2>}
           
           {/* Desktop Collapse Button */}
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="btn btn-ghost btn-sm btn-square hidden lg:flex"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
@@ -130,10 +131,11 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             )}
           </button>
 
-          {/* Mobile Close Button */}
+          {/* Mobile Close Button - Larger touch target */}
           <button 
             onClick={onClose}
-            className="btn btn-ghost btn-sm btn-square lg:hidden"
+            className="btn btn-ghost btn-sm btn-square lg:hidden min-h-[2.5rem] min-w-[2.5rem]"
+            aria-label="Close sidebar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

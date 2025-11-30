@@ -108,10 +108,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-3 sm:p-4">
       <Card className="w-full max-w-md" title={step === 'details' ? "Register Account" : "Verify Email"}>
         {step === 'details' ? (
-          <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-4 mt-4">
+          <form onSubmit={handleSubmitDetails(onDetailsSubmit)} className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
             <Input
               label="Full Name"
               type="text"
@@ -145,24 +145,24 @@ export default function RegisterPage() {
             />
 
             <div className="form-control w-full">
-              <label className="label">
-                <span className="label-text">Parent Agent ID (Optional)</span>
-                <span className="label-text-alt text-gray-500">For Child Agents</span>
+              <label className="label pb-1">
+                <span className="label-text text-xs sm:text-sm font-medium">Parent Agent ID (Optional)</span>
+                <span className="label-text-alt text-gray-500 text-xs">For Child Agents</span>
               </label>
               <input
                 type="text"
                 placeholder="Enter Parent Agent ID"
-                className={`input input-bordered w-full ${detailsErrors.parentAgentId ? 'input-error' : ''}`}
+                className={`input input-bordered w-full min-h-[2.75rem] text-sm sm:text-base ${detailsErrors.parentAgentId ? 'input-error' : ''}`}
                 {...registerDetails('parentAgentId')}
               />
               {detailsErrors.parentAgentId && (
-                <label className="label">
-                  <span className="label-text-alt text-error">{detailsErrors.parentAgentId.message}</span>
+                <label className="label pt-1">
+                  <span className="label-text-alt text-error text-xs">{detailsErrors.parentAgentId.message}</span>
                 </label>
               )}
             </div>
             
-            <div className="card-actions justify-end mt-6">
+            <div className="card-actions justify-end mt-4 sm:mt-6">
               <Button type="submit" loading={isLoading} className="w-full">
                 Next: Verify Email
               </Button>
@@ -170,15 +170,15 @@ export default function RegisterPage() {
 
             <div className="text-center mt-4 text-sm">
               Already have an account?{' '}
-              <Link to="/login" className="link link-primary">
+              <Link to="/login" className="link link-primary p-1 font-medium">
                 Login here
               </Link>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmitOtp(onOtpSubmit)} className="space-y-4 mt-4">
-            <div className="alert alert-info text-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <form onSubmit={handleSubmitOtp(onOtpSubmit)} className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
+            <div className="alert alert-info text-xs sm:text-sm p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5 sm:w-6 sm:h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span>We sent a 6-digit code to <strong>{formData?.email}</strong></span>
             </div>
 
@@ -186,21 +186,21 @@ export default function RegisterPage() {
               label="Enter OTP Code"
               type="text"
               placeholder="123456"
-              className="text-center text-2xl tracking-widest"
+              className="text-center text-xl sm:text-2xl tracking-widest"
               error={otpErrors.otp?.message}
               {...registerOtp('otp')}
             />
             
-            <div className="card-actions flex-col gap-3 mt-6">
+            <div className="card-actions flex-col gap-3 mt-4 sm:mt-6">
               <Button type="submit" loading={isLoading} className="w-full btn-primary">
                 Verify & Register
               </Button>
               
-              <div className="flex justify-between w-full text-sm">
+              <div className="flex justify-between w-full text-xs sm:text-sm">
                 <button 
                   type="button" 
                   onClick={() => setStep('details')}
-                  className="link link-hover text-gray-500"
+                  className="link link-hover text-gray-500 p-1"
                 >
                   Back to Details
                 </button>
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                   type="button" 
                   onClick={handleResendOtp}
                   disabled={isLoading}
-                  className="link link-primary"
+                  className="link link-primary p-1"
                 >
                   Resend OTP
                 </button>

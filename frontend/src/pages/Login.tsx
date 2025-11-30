@@ -45,9 +45,9 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-3 sm:p-4">
       <Card className="w-full max-w-md" title="Login to Agent Management">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
           <Input
             label="Phone Number"
             type="text"
@@ -65,21 +65,22 @@ export default function LoginPage() {
           />
 
           {/* Test Credentials - Only SuperAdmin is seeded */}
-          <div className="alert alert-info">
+          <div className="alert alert-info text-xs sm:text-sm p-3">
             <div className="flex flex-col gap-2 w-full">
               <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5 sm:w-6 sm:h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <span className="font-semibold text-sm">Test SuperAdmin Login:</span>
+                <span className="font-semibold">Test SuperAdmin Login:</span>
               </div>
-              <div className="flex gap-2 ml-8">
+              <div className="flex gap-2 ml-7 sm:ml-8">
                 <Button 
                   type="button" 
                   size="sm" 
                   variant="primary"
                   outline
                   onClick={fillSuperAdmin}
+                  className="w-full sm:w-auto text-xs sm:text-sm"
                 >
                   👑 Fill SuperAdmin Credentials
                 </Button>
@@ -88,12 +89,12 @@ export default function LoginPage() {
           </div>
 
           <div className="text-right">
-            <Link to="/forgot-password" className="text-sm link link-hover text-gray-500">
+            <Link to="/forgot-password" className="text-sm link link-hover text-gray-500 p-1">
               Forgot Password?
             </Link>
           </div>
           
-          <div className="card-actions justify-end mt-6">
+          <div className="card-actions justify-end mt-4 sm:mt-6">
             <Button type="submit" loading={isSubmitting} className="w-full">
               Login
             </Button>
@@ -101,7 +102,7 @@ export default function LoginPage() {
 
           <div className="text-center mt-4 text-sm">
             Don't have an account?{' '}
-            <Link to="/register" className="link link-primary">
+            <Link to="/register" className="link link-primary p-1 font-medium">
               Register here
             </Link>
           </div>

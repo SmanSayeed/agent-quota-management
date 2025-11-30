@@ -21,10 +21,12 @@ const Button: React.FC<ButtonProps> = ({
   const variantClass = `btn-${variant}`;
   const sizeClass = `btn-${size}`;
   const outlineClass = outline ? 'btn-outline' : '';
+  // Ensure minimum touch target size for mobile (44px is Apple's recommended minimum)
+  const touchTargetClass = size === 'md' || size === 'lg' ? 'min-h-[2.75rem]' : '';
   
   return (
     <button
-      className={`${baseClass} ${variantClass} ${sizeClass} ${outlineClass} ${className}`}
+      className={`${baseClass} ${variantClass} ${sizeClass} ${outlineClass} ${touchTargetClass} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

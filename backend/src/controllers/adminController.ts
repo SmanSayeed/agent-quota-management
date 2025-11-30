@@ -165,3 +165,114 @@ export const createSuperadmin = async (req: Request, res: Response) => {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
+
+export const getSuperAdmins = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+
+    const query: any = { role: 'superadmin' };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [superAdmins, total] = await Promise.all([
+      User.find(query)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, superAdmins, total, page, limit);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+export const updateSuperAdmin = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, email, password, status } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
+      return;
+    }
+
+    if (user.role !== 'superadmin') {
+      sendError(res, 'User is not a superadmin', 400, 'INVALID_ROLE');
+      return;
+    }
+
+    // Check if phone/email is taken by another user
+    if (phone && phone !== user.phone) {
+      const exists = await User.findOne({ phone, _id: { $ne: id } });
+      if (exists) {
+        sendError(res, 'Phone number already in use', 400, 'PHONE_EXISTS');
+        return;
+      }
+    }
+
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email, _id: { $ne: id } });
+      if (exists) {
+        sendError(res, 'Email already in use', 400, 'EMAIL_EXISTS');
+        return;
+      }
+    }
+
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (email) user.email = email;
+    if (status) user.status = status;
+    if (password) user.password = password;
+
+    await user.save();
+
+    sendSuccess(res, user, 'Superadmin updated successfully');
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+export const deleteSuperAdmin = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user._id;
+
+    if (id === currentUserId.toString()) {
+      sendError(res, 'You cannot delete your own account', 400, 'CANNOT_DELETE_SELF');
+      return;
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
+      return;
+    }
+
+    if (user.role !== 'superadmin') {
+      sendError(res, 'User is not a superadmin', 400, 'INVALID_ROLE');
+      return;
+    }
+
+    await User.findByIdAndDelete(id);
+
+    sendSuccess(res, null, 'Superadmin deleted successfully');
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};

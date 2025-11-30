@@ -21,6 +21,8 @@ const seedDatabase = async () => {
         password: 'admin123', // Will be hashed by pre-save hook
         role: 'superadmin',
         status: 'active',
+        email: 'admin@example.com',
+        emailVerified: true,
         creditBalance: 0,
         quotaBalance: 0,
       });

@@ -110,45 +110,78 @@ export default function SuperAdminDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card title="Live Pool Status">
-          <div className="flex items-center justify-center p-4 sm:p-6">
-            <LivePoolQuota showLabel={false} />
-          </div>
-          <div className="text-center mt-2">
-            <div className="stat-desc text-xs sm:text-sm">Global pool for all agents</div>
+        <Card className="bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-6">
+            <div>
+              <h3 className="text-lg font-semibold text-base-content/80">Live Pool Status</h3>
+              <p className="text-sm text-base-content/50 mt-1">Global pool for all agents</p>
+            </div>
+            
+            <div className="flex items-center justify-center py-6 bg-base-200/50 rounded-xl border border-base-content/5">
+              <LivePoolQuota showLabel={false} className="scale-150" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="bg-base-200/50 p-3 rounded-lg border border-base-content/5">
+                <div className="text-xs text-base-content/50 uppercase font-semibold">Status</div>
+                <div className="text-success font-bold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-success"></span>
+                  Active
+                </div>
+              </div>
+              <div className="bg-base-200/50 p-3 rounded-lg border border-base-content/5">
+                <div className="text-xs text-base-content/50 uppercase font-semibold">Last Updated</div>
+                <div className="text-base-content font-bold">Just now</div>
+              </div>
+            </div>
           </div>
         </Card>
 
-        <Card title="Global Settings">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
-            <Input
-              label="Daily Purchase Limit (for all agents)"
-              type="number"
-              error={errors.dailyPurchaseLimit?.message}
-              {...register('dailyPurchaseLimit')}
-            />
+        <Card className="bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-base-content/80">Global Settings</h3>
+              <p className="text-sm text-base-content/50 mt-1">System-wide configuration</p>
+            </div>
+          </div>
 
-            <Input
-              label="Credit Price (BDT per credit)"
-              type="number"
-              step="0.01"
-              error={errors.creditPrice?.message}
-              {...register('creditPrice')}
-            />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="p-4 bg-base-200/30 rounded-xl border border-base-content/5 space-y-4">
+              <Input
+                label="Daily Purchase Limit"
+                type="number"
+                error={errors.dailyPurchaseLimit?.message}
+                {...register('dailyPurchaseLimit')}
+                className="bg-base-100"
+              />
 
-            <Input
-              label="Quota Price (credits per quota)"
-              type="number"
-              error={errors.quotaPrice?.message}
-              {...register('quotaPrice')}
-            />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Credit Price (BDT)"
+                  type="number"
+                  step="0.01"
+                  error={errors.creditPrice?.message}
+                  {...register('creditPrice')}
+                  className="bg-base-100"
+                />
 
-            <div className="alert alert-info text-xs sm:text-sm">
+                <Input
+                  label="Quota Price (Credits)"
+                  type="number"
+                  error={errors.quotaPrice?.message}
+                  {...register('quotaPrice')}
+                  className="bg-base-100"
+                />
+              </div>
+            </div>
+
+            <div className="alert alert-info text-xs sm:text-sm bg-info/10 text-info border-info/20">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span>These settings affect all agents globally.</span>
             </div>
 
-            <div className="card-actions justify-end">
-              <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
+            <div className="card-actions justify-end pt-2">
+              <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto btn-primary">
                 Update Settings
               </Button>
             </div>

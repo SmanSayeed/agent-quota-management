@@ -50,55 +50,16 @@ export const login = async (req: Request, res: Response) => {
 // @desc    Register a new user (Agent)
 // @route   POST /api/auth/register
 // @access  Public
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { name, phone, password, parentAgentId } = req.body;
-
-    const userExists = await User.findOne({ phone });
-
-    if (userExists) {
-      sendError(res, 'User already exists', 400, 'USER_EXISTS');
-      return;
-    }
-
-    // If parentAgentId is provided, verify it exists and is an agent
-    if (parentAgentId) {
-      const parentAgent = await User.findById(parentAgentId);
-      if (!parentAgent || parentAgent.role !== 'agent') {
-        sendError(res, 'Invalid Parent Agent ID', 400, 'INVALID_PARENT_AGENT');
-        return;
-      }
-    }
-
-    const user = await User.create({
-      name,
-      phone,
-      password,
-      role: parentAgentId ? 'child' : 'agent',
-      parentId: parentAgentId || undefined,
-      status: 'pending', // All new registrations need approval
-    });
-
-    if (user) {
-      sendSuccess(
-        res,
-        {
-          _id: user._id,
-          name: user.name,
-          phone: user.phone,
-          role: user.role,
-          status: user.status,
-        },
-        'Registration successful. Please wait for admin approval.',
-        201
-      );
-    } else {
-      sendError(res, 'Invalid user data', 400, 'INVALID_DATA');
-    }
-  } catch (error) {
-    console.error(error);
-    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
-  }
+// @desc    Register a new user (Agent) - DEPRECATED
+// @route   POST /api/auth/register
+// @access  Public
+export const register = async (_req: Request, res: Response) => {
+  sendError(
+    res,
+    'This endpoint is deprecated. Please use the email verification flow: /api/auth/send-registration-otp and /api/auth/verify-and-register',
+    410,
+    'ENDPOINT_DEPRECATED'
+  );
 };
 
 // @desc    Logout user / clear cookie
@@ -198,4 +159,62 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, phone, email } = req.body;
+    const user = req.user;
 
+    if (!user) {
+      sendError(res, 'User not found', 404, 'USER_NOT_FOUND');
+      return;
+    }
+
+    // Check if phone is being changed and if it's already taken
+    if (phone && phone !== user.phone) {
+      const phoneExists = await User.findOne({ phone, _id: { $ne: user._id } });
+      if (phoneExists) {
+        sendError(res, 'Phone number already in use', 400, 'PHONE_EXISTS');
+        return;
+      }
+    }
+
+    // Check if email is being changed and if it's already taken
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } });
+      if (emailExists) {
+        sendError(res, 'Email already in use', 400, 'EMAIL_EXISTS');
+        return;
+      }
+      
+      // If email is changed, mark as unverified
+      user.emailVerified = false;
+    }
+
+    // Update user fields
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (email) user.email = email.toLowerCase();
+
+    await user.save();
+
+    sendSuccess(res, {
+      _id: user._id,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      role: user.role,
+      status: user.status,
+      creditBalance: user.creditBalance,
+      quotaBalance: user.quotaBalance,
+      todayPurchased: user.todayPurchased,
+      parentId: user.parentId,
+    }, 'Profile updated successfully');
+  } catch (error) {
+    console.error('Update profile error:', error);
+    sendError(res, 'Failed to update profile', 500, 'INTERNAL_ERROR');
+  }
+};

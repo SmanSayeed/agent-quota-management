@@ -46,7 +46,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200 p-3 sm:p-4">
-      <Card className="w-full max-w-md" title="Login to Agent Management">
+      <div className="flex flex-col items-center gap-6 w-full max-w-md">
+        {/* Logo and Title */}
+        <div className="flex flex-col items-center gap-3">
+          <img src="/logo.png" alt="Agent Management System" className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-lg" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Agent Management System</h1>
+        </div>
+        
+        <Card className="w-full" title="Login to Your Account">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
           <Input
             label="Phone Number"
@@ -78,7 +85,6 @@ export default function LoginPage() {
                   type="button" 
                   size="sm" 
                   variant="primary"
-                  outline
                   onClick={fillSuperAdmin}
                   className="w-full sm:w-auto text-xs sm:text-sm"
                 >
@@ -108,6 +114,7 @@ export default function LoginPage() {
           </div>
         </form>
       </Card>
+      </div>
     </div>
   );
 }

@@ -33,6 +33,11 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
           },
           { 
+            to: '/admin/super-admins', 
+            label: 'Super Admins',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          },
+          { 
             to: '/admin/credit-requests', 
             label: 'Credit Requests',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -111,30 +116,44 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
   return (
     <>
       <div 
-        className={`menu p-4 min-h-full bg-base-200 text-base-content flex flex-col transition-all duration-300 ease-in-out ${
+        className={`menu p-4 min-h-full bg-base-300 text-base-content flex flex-col transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${className}`}
       >
-        <div className="mb-6 px-2 flex justify-between items-center min-h-[2.5rem]">
-          {!isCollapsed && <h2 className="text-2xl font-bold text-primary truncate">AMS</h2>}
+        <div className={`mb-6 flex items-center min-h-[3.5rem] relative ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}>
+          {isCollapsed ? (
+            // Collapsed: Just centered logo with padding to avoid button
+            <div className="pr-2 flex-shrink-0">
+              <img src="/logo.png" alt="AMS Logo" className="w-14 h-14 flex-shrink-0 transition-all duration-300 drop-shadow-lg" />
+            </div>
+          ) : (
+            // Expanded: Logo with text
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <img src="/logo.png" alt="AMS Logo" className="w-14 h-14 flex-shrink-0 transition-all duration-300 drop-shadow-md" />
+              <div className="flex flex-col flex-shrink-0">
+                <span className="text-sm font-semibold text-base-content/60 leading-tight whitespace-nowrap">Agent & Quota</span>
+                <span className="text-sm font-semibold text-base-content/60 leading-tight whitespace-nowrap">Management</span>
+              </div>
+            </div>
+          )}
           
-          {/* Desktop Collapse Button */}
+          {/* Desktop Collapse Button - Positioned at edge */}
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="btn btn-ghost btn-sm btn-square hidden lg:flex"
+            className="hidden lg:flex items-center justify-center absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 cursor-pointer bg-transparent hover:bg-transparent border-none outline-none group"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-base-content/50 group-hover:text-primary transition-colors duration-200 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-base-content/50 group-hover:text-primary transition-colors duration-200 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
             )}
           </button>
 
           {/* Mobile Close Button - Larger touch target */}
           <button 
             onClick={onClose}
-            className="btn btn-ghost btn-sm btn-square lg:hidden min-h-[2.5rem] min-w-[2.5rem]"
+            className="btn btn-ghost btn-sm btn-square lg:hidden min-h-[2.5rem] min-w-[2.5rem] ml-auto"
             aria-label="Close sidebar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -152,8 +171,8 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
                 className={({ isActive }) => 
                   `flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                     isActive 
-                      ? 'bg-primary text-primary-content font-semibold' 
-                      : 'hover:bg-base-300'
+                      ? 'bg-primary text-primary-content font-semibold shadow-md shadow-primary/20' 
+                      : 'hover:bg-base-100 text-base-content/80 hover:text-base-content'
                   } ${isCollapsed ? 'justify-center px-2' : ''}`
                 }
                 title={isCollapsed ? link.label : ''}
@@ -167,61 +186,61 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
 
         {/* Action Buttons for Agent and Child */}
         {showActionButtons && (
-          <div className={`mt-auto pt-4 border-t border-base-300 ${isCollapsed ? 'px-0' : 'px-2'}`}>
-            <div className={`flex flex-col gap-4 ${isCollapsed ? 'items-center' : ''}`}>
+          <div className={`mt-auto pt-6 border-t border-base-content/10 ${isCollapsed ? 'px-0' : 'px-2'}`}>
+            <div className={`flex flex-col gap-3 ${isCollapsed ? 'items-center' : ''}`}>
               
-              {/* Slip Request Button */}
+              {/* Slip Request Button - Tan/Beige */}
               <button
                 onClick={() => navigate(getUploadPath())}
-                className={`flex items-center gap-3 group relative ${isCollapsed ? 'w-10 h-10 justify-center' : 'w-full'}`}
+                className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
                 title="Slip Request"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg z-10 shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-amber-200/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 {!isCollapsed && (
-                  <div className="bg-yellow-900 text-white px-4 py-1.5 rounded-r-full rounded-l-none text-sm font-medium -ml-5 pl-7 flex-1 text-left shadow-md transition-transform group-hover:scale-105">
-                    Slip Request
+                  <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
+                    Slip request
                   </div>
                 )}
               </button>
 
-              {/* Buy Credit Button - Only for Agents */}
+              {/* Buy Credit Button - Silver/Gray (Only for Agents) */}
               {user?.role === 'agent' && (
                 <button
                   onClick={() => setIsBuyCreditOpen(true)}
-                  className={`flex items-center gap-3 group relative ${isCollapsed ? 'w-10 h-10 justify-center' : 'w-full'}`}
+                  className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
                   title="Buy Credit"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg z-10 shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-gray-200/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.89.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
                     </svg>
                   </div>
                   {!isCollapsed && (
-                    <div className="bg-green-900 text-white px-4 py-1.5 rounded-r-full rounded-l-none text-sm font-medium -ml-5 pl-7 flex-1 text-left shadow-md transition-transform group-hover:scale-105">
-                      Buy Credit
+                    <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
+                      buy credit
                     </div>
                   )}
                 </button>
               )}
 
-              {/* Buy Quota Button */}
+              {/* Buy Quota Button - Golden */}
               <button
                 onClick={() => setIsBuyQuotaOpen(true)}
-                className={`flex items-center gap-3 group relative ${isCollapsed ? 'w-10 h-10 justify-center' : 'w-full'}`}
+                className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
                 title={user?.role === 'child' ? 'Request Quota' : 'Buy Quota'}
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg z-10 shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-yellow-200/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-900" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.89.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
                   </svg>
                 </div>
                 {!isCollapsed && (
-                  <div className="bg-blue-900 text-white px-4 py-1.5 rounded-r-full rounded-l-none text-sm font-medium -ml-5 pl-7 flex-1 text-left shadow-md transition-transform group-hover:scale-105">
-                    {user?.role === 'child' ? 'Request Quota' : 'Buy Quota'}
+                  <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
+                    {user?.role === 'child' ? 'request quota' : 'buy quota'}
                   </div>
                 )}
               </button>

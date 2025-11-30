@@ -27,28 +27,28 @@ export default function LivePoolQuota({ className = '', showLabel = true }: Live
   }, [availableQuota, previousQuota]);
 
   return (
-    <div className={`relative inline-flex items-center gap-3 ${className}`}>
+    <div className={`relative inline-flex items-center gap-2 ${className}`}>
       {/* Live Indicator Dot */}
-      <div className="relative flex items-center justify-center h-4 w-4">
+      <div className="relative flex items-center justify-center h-3 w-3">
         <span className={`
-          absolute inline-flex h-full w-full rounded-full opacity-75 bg-success
+          absolute inline-flex h-full w-full rounded-full opacity-75 bg-secondary
           ${isUpdating ? 'animate-ping-big' : 'animate-pulse-radar'}
         `}></span>
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
       </div>
 
       {/* Quota Display */}
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-0.5">
         {showLabel && (
-          <span className="text-xs font-medium opacity-70 uppercase tracking-wide">
-            Live Pool Quota
+          <span className="badge badge-secondary badge-xs font-extrabold text-secondary-content px-2 py-0 h-4 leading-none">
+            LIVE QUOTA
           </span>
         )}
         <div className={`
-          text-2xl font-bold tabular-nums transition-all duration-300 text-success
-          ${isUpdating ? 'scale-110' : ''}
+          text-xl lg:text-2xl font-extrabold tabular-nums transition-all duration-300 text-base-content leading-tight
+          ${isUpdating ? 'scale-110 text-secondary' : ''}
         `}>
-          {availableQuota.toLocaleString()}
+          {availableQuota.toLocaleString()} <span className="text-xs font-medium text-base-content/60">units</span>
         </div>
       </div>
 

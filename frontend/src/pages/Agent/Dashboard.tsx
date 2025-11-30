@@ -54,33 +54,91 @@ export default function AgentDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card title="My Quota">
-          <div className="stat p-0">
-            <div className="stat-value text-primary text-2xl sm:text-3xl">{user?.quotaBalance}</div>
-            <div className="stat-desc text-xs sm:text-sm">Available to use</div>
-          </div>
-        </Card>
-
-        <Card title="Live Global Pool">
-          <div className="flex items-center justify-center p-2 sm:p-4">
-            <LivePoolQuota showLabel={false} />
-          </div>
-        </Card>
-
-        <Card title="Credit Balance">
-          <div className="stat p-0">
-            <div className="stat-value text-secondary text-2xl sm:text-3xl">{user?.creditBalance}</div>
-            <div className="stat-desc text-xs sm:text-sm">Credits available</div>
-          </div>
-        </Card>
-
-        <Card title="Daily Limit">
-          <div className="stat p-0">
-            <div className="stat-value text-xl sm:text-2xl md:text-3xl">
-              {user?.todayPurchased} / {dailyPurchaseLimit}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Quota Overview - Matches image style */}
+        <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-base-content/80">Quota Overview</h3>
+              <p className="text-sm text-base-content/50 mt-1">Remaining Total Quota</p>
             </div>
-            <div className="stat-desc text-xs sm:text-sm">Purchased Today</div>
+            
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold text-base-content">{user?.quotaBalance?.toLocaleString()}</span>
+              <span className="text-lg text-primary font-medium">units</span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-base-300 rounded-full h-3 mt-2">
+              <div 
+                className="bg-primary h-3 rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(((user?.quotaBalance || 0) / 10000) * 100, 100)}%` }} // Assuming 10k is a visual max for now
+              ></div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Financial Summary - Matches image style */}
+        <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold text-base-content/80">Financial Summary</h3>
+                <p className="text-sm text-base-content/50 mt-1">Current Credit Balance</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                <span className="text-xl">💰</span>
+              </div>
+            </div>
+            
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold text-base-content">
+                <span className="text-secondary mr-1">৳</span>
+                {user?.creditBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            <div className="mt-2">
+              <Button size="sm" variant="primary" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white border-none">
+                Request Credit
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Live Global Pool */}
+        <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-lg font-semibold text-base-content/80">Live Global Pool</h3>
+            <div className="flex items-center justify-center py-4">
+              <LivePoolQuota showLabel={false} className="scale-125" />
+            </div>
+            <p className="text-center text-sm text-base-content/50">Real-time availability</p>
+          </div>
+        </Card>
+
+        {/* Daily Limit */}
+        <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-base-content/80">Daily Purchase Limit</h3>
+              <p className="text-sm text-base-content/50 mt-1">Usage Today</p>
+            </div>
+            
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-base-content">
+                {user?.todayPurchased} <span className="text-base-content/40 text-xl">/ {dailyPurchaseLimit}</span>
+              </span>
+            </div>
+
+            <div className="w-full bg-base-300 rounded-full h-3 mt-2">
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  (user?.todayPurchased || 0) >= (dailyPurchaseLimit || 1) ? 'bg-error' : 'bg-success'
+                }`}
+                style={{ width: `${Math.min(((user?.todayPurchased || 0) / (dailyPurchaseLimit || 1)) * 100, 100)}%` }}
+              ></div>
+            </div>
           </div>
         </Card>
       </div>

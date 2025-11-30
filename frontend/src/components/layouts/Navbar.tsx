@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import LivePoolQuota from '../ui/LivePoolQuota';
 import ReturnToPoolModal from '../modals/ReturnToPoolModal';
@@ -18,7 +19,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const showAgentActions = user?.role === 'agent';
 
   return (
-    <div className="navbar bg-base-100 shadow-sm z-10 min-h-[4rem] px-2 sm:px-4">
+    <div className="navbar bg-base-300 shadow-sm sticky top-0 z-50 min-h-[4rem] px-2 sm:px-4">
       <div className="flex-none lg:hidden">
         <button 
           className="btn btn-square btn-ghost min-h-[2.75rem] min-w-[2.75rem]" 
@@ -41,16 +42,16 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         </button>
       </div>
       <div className="flex-1 min-w-0">
-        <a className="btn btn-ghost text-sm sm:text-base lg:text-xl normal-case px-2 sm:px-4 truncate">
-          <span className="hidden sm:inline">Agent Management</span>
+        <Link to="/" className="btn btn-ghost text-sm sm:text-base lg:text-xl normal-case px-2 sm:px-4 truncate">
+          <span className="hidden sm:inline">Agent Management System</span>
           <span className="sm:hidden">AMS</span>
-        </a>
+        </Link>
       </div>
       <div className="flex-none flex items-center gap-1 sm:gap-2 md:gap-4">
         {/* Live Pool Quota */}
         {showPoolQuota && (
-          <div className="hidden md:flex items-center px-2 lg:px-3 py-1.5 lg:py-2 bg-base-200 rounded-lg">
-            <LivePoolQuota showLabel={false} />
+          <div className="hidden md:flex items-center px-3 lg:px-4 py-2 bg-base-100/80 backdrop-blur-sm rounded-lg border border-base-content/10 shadow-lg">
+            <LivePoolQuota showLabel={true} />
           </div>
         )}
 
@@ -64,8 +65,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               title="Return unused quota to global pool"
               aria-label="Share to pool"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-secondary to-warning flex items-center justify-center shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-secondary-content" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" d="M9.315 7.584C12.195 3.883 16.695 1.5 21.75 1.5a.75.75 0 01.75.75c0 5.056-2.383 9.555-6.084 12.436A6.75 6.75 0 019.75 22.5a.75.75 0 01-.75-.75v-4.131A15.838 15.838 0 016.382 15H2.25a.75.75 0 01-.75-.75 6.75 6.75 0 017.815-6.666zM15 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" clipRule="evenodd" />
                   <path d="M5.26 17.242a.75.75 0 10-.897-1.203 5.243 5.243 0 00-2.05 5.022.75.75 0 00.625.627 5.243 5.243 0 005.022-2.051.75.75 0 10-1.202-.897 3.744 3.744 0 01-3.008 1.51c0-1.23.592-2.323 1.51-3.008z" />
                 </svg>
@@ -78,14 +79,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               className="hidden md:flex items-center gap-2 lg:gap-3 group relative"
               title="Return unused quota to global pool"
             >
-              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg z-10 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 lg:h-5 lg:w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-secondary to-warning flex items-center justify-center shadow-lg z-10 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 lg:h-5 lg:w-5 text-secondary-content" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" d="M9.315 7.584C12.195 3.883 16.695 1.5 21.75 1.5a.75.75 0 01.75.75c0 5.056-2.383 9.555-6.084 12.436A6.75 6.75 0 019.75 22.5a.75.75 0 01-.75-.75v-4.131A15.838 15.838 0 016.382 15H2.25a.75.75 0 01-.75-.75 6.75 6.75 0 017.815-6.666zM15 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" clipRule="evenodd" />
                   <path d="M5.26 17.242a.75.75 0 10-.897-1.203 5.243 5.243 0 00-2.05 5.022.75.75 0 00.625.627 5.243 5.243 0 005.022-2.051.75.75 0 10-1.202-.897 3.744 3.744 0 01-3.008 1.51c0-1.23.592-2.323 1.51-3.008z" />
                 </svg>
               </div>
-              <div className="bg-yellow-900 text-white px-3 lg:px-4 py-1 lg:py-1.5 rounded-r-full rounded-l-none text-xs lg:text-sm font-medium -ml-4 lg:-ml-5 pl-6 lg:pl-7 shadow-md transition-transform group-hover:scale-105">
-                Share to Pool
+              <div className="bg-secondary/20 text-secondary px-3 lg:px-4 py-1 lg:py-1.5 rounded-r-full rounded-l-none text-xs lg:text-sm font-bold -ml-4 lg:-ml-5 pl-6 lg:pl-7 shadow-md transition-transform group-hover:scale-105 border border-secondary/30">
+                SHARE QUOTA
               </div>
             </button>
           </>
@@ -118,9 +119,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             </li>
             <li className="lg:hidden"><div className="divider my-0"></div></li>
             <li>
+              <Link to="/profile" className="justify-between">
+                Profile
+              </Link>
+            </li>
+            <li>
               <button 
                 onClick={() => logout()} 
-                className="btn btn-error btn-sm w-full text-white hover:btn-error active:btn-error min-h-[2.5rem]"
+                className="text-error"
               >
                 Logout
               </button>

@@ -1,15 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import LivePoolQuota from '../../components/ui/LivePoolQuota';
+import BuyCreditModal from '../../components/modals/BuyCreditModal';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 
 export default function AgentDashboard() {
   const { user } = useAuthStore();
   const { dailyPurchaseLimit, setPoolData } = usePoolStore();
+  const [isBuyCreditOpen, setIsBuyCreditOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,7 +101,12 @@ export default function AgentDashboard() {
             </div>
 
             <div className="mt-2">
-              <Button size="sm" variant="primary" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white border-none">
+              <Button 
+                size="sm" 
+                variant="primary" 
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white border-none"
+                onClick={() => setIsBuyCreditOpen(true)}
+              >
                 Request Credit
               </Button>
             </div>
@@ -147,6 +154,9 @@ export default function AgentDashboard() {
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5 sm:w-6 sm:h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         <span>Use the quick action buttons in the sidebar to Request Slips, Buy Credit, or Buy Quota.</span>
       </div>
+
+      {/* Buy Credit Modal */}
+      <BuyCreditModal isOpen={isBuyCreditOpen} onClose={() => setIsBuyCreditOpen(false)} />
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function LoginPage() {
                   onClick={() => { setValue('phone', '01700000001'); setValue('password', 'password123'); }}
                   className="w-full text-xs"
                 >
-                  👤 Agent 1 (Seller)
+                  👤 Agent 1
                 </Button>
                 <Button 
                   type="button" 
@@ -102,7 +102,7 @@ export default function LoginPage() {
                   onClick={() => { setValue('phone', '01700000002'); setValue('password', 'password123'); }}
                   className="w-full text-xs"
                 >
-                  👤 Agent 2 (Buyer)
+                  👤 Agent 2
                 </Button>
                 <Button 
                   type="button" 

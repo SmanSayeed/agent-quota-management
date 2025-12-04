@@ -77,6 +77,7 @@ function App() {
                   <Route path="/admin/passports" element={<Passports />} />
                   <Route path="/admin/super-admins" element={<SuperAdmins />} />
                   <Route path="/admin/pending-purchases" element={<PendingPurchases />} />
+                  <Route path="/admin/marketplace" element={<Marketplace />} />
                   <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                 </>
               )}

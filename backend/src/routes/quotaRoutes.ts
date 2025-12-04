@@ -26,7 +26,7 @@ router.get('/history', authorize('agent'), getQuotaHistory);
 
 // Marketplace routes
 router.post('/listing', authorize('agent'), createListing);
-router.get('/marketplace', authorize('agent'), getMarketplace);
+router.get('/marketplace', authorize('agent', 'superadmin'), getMarketplace);
 router.get('/my-listings', authorize('agent'), getMyListings);
 router.delete('/listing/:id', authorize('agent'), cancelListing);
 router.post('/purchase/:listingId', authorize('agent'), purchaseFromMarketplace);

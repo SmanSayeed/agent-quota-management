@@ -123,19 +123,28 @@ export default function Marketplace() {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }: any) => (
-        row.original.sellerId?._id !== user?._id ? (
-          <Button 
-            size="sm" 
-            onClick={() => handlePurchase(row.original._id)}
-            disabled={user?.creditBalance! < row.original.totalPrice}
-          >
-            {user?.creditBalance! < row.original.totalPrice ? 'Insufficient Credits' : 'Purchase'}
-          </Button>
-        ) : (
-          <span className="text-xs text-gray-500">Your Listing</span>
-        )
-      ),
+      cell: ({ row }: any) => {
+        const isSuperAdmin = user?.role === 'superadmin';
+        
+        // Super admin can only observe
+        if (isSuperAdmin) {
+          return <span className="text-sm text-gray-500 italic">Observer mode</span>;
+        }
+        
+        return (
+          row.original.sellerId?._id !== user?._id ? (
+            <Button 
+              size="sm" 
+              onClick={() => handlePurchase(row.original._id)}
+              disabled={user?.creditBalance! < row.original.totalPrice}
+            >
+              {user?.creditBalance! < row.original.totalPrice ? 'Insufficient Credits' : 'Purchase'}
+            </Button>
+          ) : (
+            <span className="text-xs text-gray-500">Your Listing</span>
+          )
+        );
+      },
     },
   ];
 

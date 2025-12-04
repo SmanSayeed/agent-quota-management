@@ -47,6 +47,11 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             label: 'Passports',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
           },
+          { 
+            to: '/admin/pending-purchases', 
+            label: 'Pending Purchases',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          },
         ];
       case 'agent':
         return [
@@ -71,10 +76,20 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
             label: 'Quota Requests',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
           },
-          { 
+          {
             to: '/agent/quota-history', 
             label: 'Quota History',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          },
+          { 
+            to: '/agent/marketplace', 
+            label: 'Marketplace',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+          },
+          { 
+            to: '/agent/list-quota', 
+            label: 'List Quota for Sale',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
           },
           { 
             to: '/agent/my-slip-requests', 
@@ -227,23 +242,45 @@ export default function Sidebar({ className = '', onClose }: SidebarProps) {
                 </button>
               )}
 
-              {/* Buy Quota Button - Golden */}
-              <button
-                onClick={() => setIsBuyQuotaOpen(true)}
-                className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
-                title={user?.role === 'child' ? 'Request Quota' : 'Buy Quota'}
-              >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-yellow-200/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-900" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.89.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
-                  </svg>
-                </div>
-                {!isCollapsed && (
-                  <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
-                    {user?.role === 'child' ? 'request quota' : 'buy quota'}
+              {/* Buy Quota Button - Purple/Violet (Only for Child Agents) */}
+              {user?.role === 'child' && (
+                <button
+                  onClick={() => setIsBuyQuotaOpen(true)}
+                  className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
+                  title="Buy Quota"
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 via-violet-500 to-purple-600 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-purple-300/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
                   </div>
-                )}
-              </button>
+                  {!isCollapsed && (
+                    <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
+                      buy quota
+                    </div>
+                  )}
+                </button>
+              )}
+
+              {/* Quota Marketplace Button - Green/Teal (Only for Agents) */}
+              {user?.role === 'agent' && (
+                <button
+                  onClick={() => navigate('/agent/marketplace')}
+                  className={`flex items-center group relative transition-all hover:scale-105 ${isCollapsed ? 'w-12 h-12 justify-center' : 'w-full'}`}
+                  title="Quota Marketplace"
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-300 via-teal-400 to-teal-500 flex items-center justify-center shadow-xl z-10 shrink-0 border-2 border-teal-200/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="bg-base-100/50 backdrop-blur-sm text-base-content px-4 py-2 rounded-r-full rounded-l-none text-sm font-bold -ml-6 pl-8 flex-1 text-left shadow-lg border border-base-content/10 group-hover:bg-base-100/70 transition-all">
+                      marketplace
+                    </div>
+                  )}
+                </button>
+              )}
 
             </div>
           </div>

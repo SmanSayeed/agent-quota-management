@@ -4,6 +4,8 @@ import { User } from '../models/User';
 import { Pool } from '../models/Pool';
 import { SystemSettings } from '../models/SystemSettings';
 import { QuotaTransaction } from '../models/QuotaTransaction';
+import { QuotaListing } from '../models/QuotaListing';
+import { QuotaPurchase } from '../models/QuotaPurchase';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { getIO } from '../socket';
 import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
@@ -168,62 +170,7 @@ export const transferToChild = async (req: AuthRequest, res: Response) => {
   }
 };
 
-/**
- * Return unused quota from an agent back to the global pool (no credit refund)
- */
-export const liveToPool = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const { quantity } = req.body;
-    const userId = req.user!._id;
-    if (!quantity || quantity <= 0) throw new Error('Invalid quantity');
 
-    // Deduct from agent
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: userId, quotaBalance: { $gte: quantity } },
-      { $inc: { quotaBalance: -quantity } },
-      { session, new: true }
-    );
-    if (!updatedUser) throw new Error('Insufficient quota balance');
-
-    // Add back to pool
-    const updatedPool = await Pool.findByIdAndUpdate(
-      'pool_singleton',
-      { $inc: { availableQuota: quantity } },
-      { session, new: true }
-    );
-    if (!updatedPool) throw new Error('Pool not found');
-
-    // Log transaction
-    const agentBefore = updatedUser.quotaBalance + quantity;
-    const poolBefore = updatedPool.availableQuota - quantity;
-    await QuotaTransaction.create([
-      {
-        type: 'liveToPool',
-        quantity,
-        agentId: userId,
-        creditCost: 0,
-        agentQuotaBefore: agentBefore,
-        agentQuotaAfter: updatedUser.quotaBalance,
-        poolQuotaBefore: poolBefore,
-        poolQuotaAfter: updatedPool.availableQuota,
-      },
-    ], { session, ordered: true });
-
-    await session.commitTransaction();
-
-    // Emit updates
-    getIO().to('pool-updates').emit('pool-updated', { availableQuota: updatedPool.availableQuota });
-    getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser.quotaBalance });
-    sendSuccess(res, null, 'Quota returned to pool successfully');
-  } catch (error: any) {
-    await session.abortTransaction();
-    sendError(res, error.message, 400);
-  } finally {
-    session.endSession();
-  }
-};
 
 /**
  * Get pool information (used by agents via /quota/pool endpoint)
@@ -264,6 +211,229 @@ export const getQuotaHistory = async (req: AuthRequest, res: Response) => {
     ]);
 
     sendPaginatedSuccess(res, transactions, total, page, limit);
+  } catch (error: any) {
+    sendError(res, error.message, 500);
+  }
+};
+
+/**
+ * Create a quota listing for the marketplace
+ */
+export const createListing = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { quantity, pricePerQuota } = req.body;
+    const userId = req.user!._id;
+    
+    if (!quantity || quantity <= 0) throw new Error('Invalid quantity');
+    if (!pricePerQuota || pricePerQuota <= 0) throw new Error('Invalid price');
+
+    // Deduct quota from agent
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userId, quotaBalance: { $gte: quantity } },
+      { $inc: { quotaBalance: -quantity } },
+      { session, new: true }
+    );
+    if (!updatedUser) throw new Error('Insufficient quota balance');
+
+    const totalPrice = quantity * pricePerQuota;
+
+    // Create listing
+    const listing = await QuotaListing.create([{
+      sellerId: userId,
+      quantity,
+      pricePerQuota,
+      totalPrice,
+      status: 'active',
+    }], { session });
+
+    await session.commitTransaction();
+
+    // Emit socket update
+    getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser.quotaBalance });
+    getIO().to('marketplace-updates').emit('listing-created', listing[0]);
+
+    sendSuccess(res, listing[0], 'Listing created successfully');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 400);
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Get all active marketplace listings
+ */
+export const getMarketplace = async (req: AuthRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const [listings, total] = await Promise.all([
+      QuotaListing.find({ status: 'active' })
+        .populate('sellerId', 'name phone email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      QuotaListing.countDocuments({ status: 'active' }),
+    ]);
+
+    sendPaginatedSuccess(res, listings, total, page, limit);
+  } catch (error: any) {
+    sendError(res, error.message, 500);
+  }
+};
+
+/**
+ * Get agent's own listings
+ */
+export const getMyListings = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+    
+    const skip = (page - 1) * limit;
+    const query: any = { sellerId: userId };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const [listings, total] = await Promise.all([
+      QuotaListing.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      QuotaListing.countDocuments(query),
+    ]);
+
+    sendPaginatedSuccess(res, listings, total, page, limit);
+  } catch (error: any) {
+    sendError(res, error.message, 500);
+  }
+};
+
+/**
+ * Cancel an active listing
+ */
+export const cancelListing = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params;
+    const userId = req.user!._id;
+
+    const listing = await QuotaListing.findOne({
+      _id: id,
+      sellerId: userId,
+      status: 'active',
+    }).session(session);
+
+    if (!listing) throw new Error('Listing not found or already sold/cancelled');
+
+    // Return quota to agent
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { quotaBalance: listing.quantity } },
+      { session, new: true }
+    );
+
+    // Update listing status
+    listing.status = 'cancelled';
+    await listing.save({ session });
+
+    await session.commitTransaction();
+
+    // Emit socket updates
+    getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser!.quotaBalance });
+    getIO().to('marketplace-updates').emit('listing-cancelled', { listingId: id });
+
+    sendSuccess(res, null, 'Listing cancelled successfully');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 400);
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Purchase quota from marketplace (creates pending purchase)
+ */
+export const purchaseFromMarketplace = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { listingId } = req.params;
+    const userId = req.user!._id;
+
+    const listing = await QuotaListing.findOne({
+      _id: listingId,
+      status: 'active',
+    }).session(session);
+
+    if (!listing) throw new Error('Listing not found or no longer available');
+    if (listing.sellerId.toString() === userId.toString()) {
+      throw new Error('Cannot purchase your own listing');
+    }
+
+    // Check if buyer has sufficient credit
+    const buyer = await User.findById(userId).session(session);
+    if (!buyer) throw new Error('User not found');
+    if (buyer.creditBalance < listing.totalPrice) {
+      throw new Error('Insufficient credit balance');
+    }
+
+    // Create pending purchase
+    const purchase = await QuotaPurchase.create([{
+      listingId: listing._id,
+      buyerId: userId,
+      sellerId: listing.sellerId,
+      quantity: listing.quantity,
+      pricePerQuota: listing.pricePerQuota,
+      totalPrice: listing.totalPrice,
+      status: 'pending',
+    }], { session });
+
+    // Update listing to mark it as having a pending purchase
+    listing.purchaseId = purchase[0]._id;
+    listing.status = 'sold'; // Temporarily mark as sold
+    await listing.save({ session });
+
+    await session.commitTransaction();
+
+    // Emit socket updates
+    getIO().to('marketplace-updates').emit('listing-purchased', { listingId: listing._id });
+    getIO().to('admin-updates').emit('purchase-pending', purchase[0]);
+
+    sendSuccess(res, purchase[0], 'Purchase request submitted, awaiting admin approval');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 400);
+  } finally {
+    session.endSession();
+  }
+};
+
+
+
+/**
+ * Get total available quota in marketplace
+ */
+export const getMarketplaceTotalQuota = async (_req: any, res: Response) => {
+  try {
+    const result = await QuotaListing.aggregate([
+      { $match: { status: 'active' } },
+      { $group: { _id: null, totalQuota: { $sum: '$quantity' } } }
+    ]);
+
+    const totalQuota = result.length > 0 ? result[0].totalQuota : 0;
+    sendSuccess(res, { totalQuota }, 'Total marketplace quota retrieved');
   } catch (error: any) {
     sendError(res, error.message, 500);
   }

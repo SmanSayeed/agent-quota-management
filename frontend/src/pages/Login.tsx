@@ -37,11 +37,7 @@ export default function LoginPage() {
     }
   };
 
-  // Quick fill function for testing (only SuperAdmin is seeded)
-  const fillSuperAdmin = () => {
-    setValue('phone', '01700000000');
-    setValue('password', 'password123');
-  };
+
 
 
   return (
@@ -71,24 +67,51 @@ export default function LoginPage() {
             {...register('password')}
           />
 
-          {/* Test Credentials - Only SuperAdmin is seeded */}
+          {/* Test Credentials */}
           <div className="alert alert-info text-xs sm:text-sm p-3">
             <div className="flex flex-col gap-2 w-full">
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5 sm:w-6 sm:h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <span className="font-semibold">Test SuperAdmin Login:</span>
+                <span className="font-semibold">Quick Login (Test Users):</span>
               </div>
-              <div className="flex gap-2 ml-7 sm:ml-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                 <Button 
                   type="button" 
                   size="sm" 
                   variant="primary"
-                  onClick={fillSuperAdmin}
-                  className="w-full sm:w-auto text-xs sm:text-sm"
+                  onClick={() => { setValue('phone', '01700000000'); setValue('password', 'admin123'); }}
+                  className="w-full text-xs"
                 >
-                  👑 Fill SuperAdmin Credentials
+                  👑 Super Admin
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={() => { setValue('phone', '01700000001'); setValue('password', 'password123'); }}
+                  className="w-full text-xs"
+                >
+                  👤 Agent 1 (Seller)
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={() => { setValue('phone', '01700000002'); setValue('password', 'password123'); }}
+                  className="w-full text-xs"
+                >
+                  👤 Agent 2 (Buyer)
+                </Button>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={() => { setValue('phone', '01700000003'); setValue('password', 'password123'); }}
+                  className="w-full text-xs border border-base-content/20"
+                >
+                  👶 Child Agent
                 </Button>
               </div>
             </div>

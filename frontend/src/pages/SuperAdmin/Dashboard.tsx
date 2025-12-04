@@ -3,13 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import api from '../../api/axios';
-import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import LivePoolQuota from '../../components/ui/LivePoolQuota';
 import toast from 'react-hot-toast';
-
 const updateSettingsSchema = z.object({
   dailyPurchaseLimit: z.coerce.number().min(0, 'Limit must be a positive number'),
   creditPrice: z.coerce.number().min(0.01, 'Credit price must be greater than 0'),
@@ -26,7 +23,6 @@ type UpdateSettingsInputs = z.infer<typeof updateSettingsSchema>;
 type CreateSuperadminInputs = z.infer<typeof createSuperadminSchema>;
 
 export default function SuperAdminDashboard() {
-  const { setAvailableQuota } = usePoolStore();
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -54,10 +50,7 @@ export default function SuperAdminDashboard() {
 
   const fetchPoolData = async () => {
     try {
-      // Fetch pool for quota
-      const poolResponse = await api.get('/quota/pool');
-      setAvailableQuota(poolResponse.data.data.availableQuota);
-      
+
       // Fetch settings for prices and limits
       const settingsResponse = await api.get('/admin/settings');
       setValue('dailyPurchaseLimit', settingsResponse.data.data.dailyPurchaseLimit);
@@ -110,32 +103,29 @@ export default function SuperAdminDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Daily Quota Allocation Info */}
         <Card className="bg-base-100 border border-base-content/5 shadow-lg">
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-base-content/80">Live Pool Status</h3>
-              <p className="text-sm text-base-content/50 mt-1">Global pool for all agents</p>
+              <h3 className="text-lg font-semibold text-base-content/80">Daily Quota Allocation</h3>
+              <p className="text-sm text-base-content/50 mt-1">Free quota given to all agents daily</p>
             </div>
             
-            <div className="flex items-center justify-center py-6 bg-base-200/50 rounded-xl border border-base-content/5">
-              <LivePoolQuota showLabel={false} className="scale-150" />
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-bold text-success">100</span>
+              <span className="text-lg text-base-content/60 font-medium">quota/day</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div className="bg-base-200/50 p-3 rounded-lg border border-base-content/5">
-                <div className="text-xs text-base-content/50 uppercase font-semibold">Status</div>
-                <div className="text-success font-bold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-success"></span>
-                  Active
-                </div>
-              </div>
-              <div className="bg-base-200/50 p-3 rounded-lg border border-base-content/5">
-                <div className="text-xs text-base-content/50 uppercase font-semibold">Last Updated</div>
-                <div className="text-base-content font-bold">Just now</div>
-              </div>
+            <div className="alert alert-info text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>Resets automatically when triggered</span>
             </div>
           </div>
         </Card>
+
+        {/* Global Settings */}
 
         <Card className="bg-base-100 border border-base-content/5 shadow-lg">
           <div className="flex flex-col gap-4 mb-4">

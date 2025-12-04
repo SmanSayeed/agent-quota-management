@@ -13,16 +13,18 @@ import Agents from './pages/SuperAdmin/Agents';
 import CreditRequests from './pages/SuperAdmin/CreditRequests';
 import Passports from './pages/SuperAdmin/Passports';
 import SuperAdmins from './pages/SuperAdmin/SuperAdmins';
+import PendingPurchases from './pages/SuperAdmin/PendingPurchases';
 import AgentDashboard from './pages/Agent/Dashboard';
 import MyChildAgents from './pages/Agent/MyChildAgents';
 import UploadPassport from './pages/Agent/UploadPassport';
 import RequestCredit from './pages/Agent/RequestCredit';
 import SlipRequest from './pages/Agent/SlipRequest';
-import BuyQuota from './pages/Agent/BuyQuota';
 import AgentCreditRequests from './pages/Agent/AgentCreditRequests';
 import AgentQuotaRequests from './pages/Agent/AgentQuotaRequests';
 import MySlipRequests from './pages/Agent/MySlipRequests';
-import LiveToPool from './pages/Agent/LiveToPool';
+
+import ListQuotaForSale from './pages/Agent/ListQuotaForSale';
+import Marketplace from './pages/Agent/Marketplace';
 import ChildDashboard from './pages/Child/Dashboard';
 import ChildUploadPassport from './pages/Child/UploadPassport';
 import ChildSlipRequest from './pages/Child/SlipRequest';
@@ -53,7 +55,7 @@ function App() {
   return (
     <div className="min-h-screen bg-base-200 text-base-content">
       <BrowserRouter>
-        <Toaster position="top-center" />
+        <Toaster position="top-center" toastOptions={{ style: { zIndex: 99999 } }} />
         <Routes>
           {!isAuthenticated ? (
             <>
@@ -74,6 +76,7 @@ function App() {
                   <Route path="/admin/credit-requests" element={<CreditRequests />} />
                   <Route path="/admin/passports" element={<Passports />} />
                   <Route path="/admin/super-admins" element={<SuperAdmins />} />
+                  <Route path="/admin/pending-purchases" element={<PendingPurchases />} />
                   <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                 </>
               )}
@@ -84,8 +87,9 @@ function App() {
                   <Route path="/agent/request-credit" element={<RequestCredit />} />
                   <Route path="/agent/slip-request" element={<SlipRequest />} />
                   <Route path="/agent/my-slip-requests" element={<MySlipRequests />} />
-                  <Route path="/agent/buy-quota" element={<BuyQuota />} />
-                  <Route path="/agent/live-to-pool" element={<LiveToPool />} />
+
+                  <Route path="/agent/marketplace" element={<Marketplace />} />
+                  <Route path="/agent/list-quota" element={<ListQuotaForSale />} />
                   <Route path="/agent/my-children" element={<MyChildAgents />} />
                   <Route path="/agent/credit-requests" element={<AgentCreditRequests />} />
                   <Route path="/agent/quota-requests" element={<AgentQuotaRequests />} />

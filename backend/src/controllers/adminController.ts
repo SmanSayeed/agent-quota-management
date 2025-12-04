@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { User } from '../models/User';
 import { Pool } from '../models/Pool';
 import { SystemSettings } from '../models/SystemSettings';
+import { QuotaListing } from '../models/QuotaListing';
+import { QuotaPurchase } from '../models/QuotaPurchase';
+import { QuotaTransaction } from '../models/QuotaTransaction';
 import { getIO } from '../socket';
 import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 
@@ -276,3 +280,219 @@ export const deleteSuperAdmin = async (req: any, res: Response) => {
     sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
   }
 };
+
+/**
+ * Get all pending purchase requests from marketplace
+ */
+export const getPendingPurchases = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [purchases, total] = await Promise.all([
+      QuotaPurchase.find({ status: 'pending' })
+        .populate('buyerId', 'name phone email creditBalance')
+        .populate('sellerId', 'name phone email quotaBalance')
+        .populate('listingId')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      QuotaPurchase.countDocuments({ status: 'pending' }),
+    ]);
+
+    sendPaginatedSuccess(res, purchases, total, page, limit);
+  } catch (error) {
+    sendError(res, 'Server error', 500, 'INTERNAL_ERROR');
+  }
+};
+
+/**
+ * Approve a marketplace purchase
+ */
+export const approvePurchase = async (req: any, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params;
+    const adminId = req.user._id;
+
+    const purchase = await QuotaPurchase.findOne({
+      _id: id,
+      status: 'pending',
+    }).session(session);
+
+    if (!purchase) throw new Error('Purchase not found or already processed');
+
+    // Deduct credits from buyer
+    const buyer = await User.findOneAndUpdate(
+      { _id: purchase.buyerId, creditBalance: { $gte: purchase.totalPrice } },
+      { $inc: { creditBalance: -purchase.totalPrice, quotaBalance: purchase.quantity } },
+      { session, new: true }
+    );
+    if (!buyer) throw new Error('Buyer has insufficient credits');
+
+    // Add credits to seller
+    const seller = await User.findByIdAndUpdate(
+      purchase.sellerId,
+      { $inc: { creditBalance: purchase.totalPrice } },
+      { session, new: true }
+    );
+    if (!seller) throw new Error('Seller not found');
+
+    // Update purchase status
+    purchase.status = 'approved';
+    purchase.approvedBy = adminId;
+    purchase.approvedAt = new Date();
+    await purchase.save({ session });
+
+    // Create transaction records for both buyer and seller
+    const buyerBefore = buyer.quotaBalance - purchase.quantity;
+    const buyerCreditBefore = buyer.creditBalance + purchase.totalPrice;
+    const sellerCreditBefore = seller.creditBalance - purchase.totalPrice;
+
+    await QuotaTransaction.create([
+      {
+        type: 'marketplaceSale',
+        quantity: purchase.quantity,
+        agentId: purchase.buyerId,
+        sellerId: purchase.sellerId,
+        purchaseId: purchase._id,
+        creditCost: purchase.totalPrice,
+        agentQuotaBefore: buyerBefore,
+        agentQuotaAfter: buyer.quotaBalance,
+        agentCreditBefore: buyerCreditBefore,
+        agentCreditAfter: buyer.creditBalance,
+      },
+      {
+        type: 'marketplaceSale',
+        quantity: purchase.quantity,
+        agentId: purchase.sellerId,
+        sellerId: purchase.sellerId,
+        purchaseId: purchase._id,
+        creditCost: purchase.totalPrice,
+        agentQuotaBefore: seller.quotaBalance,
+        agentQuotaAfter: seller.quotaBalance,
+        agentCreditBefore: sellerCreditBefore,
+        agentCreditAfter: seller.creditBalance,
+      },
+    ], { session, ordered: true });
+
+    await session.commitTransaction();
+
+    // Emit socket updates
+    getIO().to(purchase.buyerId.toString()).emit('quota-balance-updated', { quotaBalance: buyer.quotaBalance });
+    getIO().to(purchase.buyerId.toString()).emit('credit-balance-updated', { creditBalance: buyer.creditBalance });
+    getIO().to(purchase.sellerId.toString()).emit('credit-balance-updated', { creditBalance: seller.creditBalance });
+    getIO().to('admin-updates').emit('purchase-approved', { purchaseId: id });
+
+    sendSuccess(res, purchase, 'Purchase approved successfully');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 400);
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Reject a marketplace purchase
+ */
+export const rejectPurchase = async (req: any, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user._id;
+
+    const purchase = await QuotaPurchase.findOne({
+      _id: id,
+      status: 'pending',
+    }).session(session);
+
+    if (!purchase) throw new Error('Purchase not found or already processed');
+
+    // Get the listing and return it to active status
+    const listing = await QuotaListing.findById(purchase.listingId).session(session);
+    if (listing) {
+      // CRITICAL FIX: Return quota to seller
+      const seller = await User.findByIdAndUpdate(
+        listing.sellerId,
+        { $inc: { quotaBalance: listing.quantity } },
+        { session, new: true }
+      );
+      
+      if (!seller) throw new Error('Seller not found');
+      
+      listing.status = 'active';
+      listing.purchaseId = undefined;
+      await listing.save({ session });
+      
+      // Emit quota update to seller
+      getIO().to(listing.sellerId.toString()).emit('quota-balance-updated', { 
+        quotaBalance: seller.quotaBalance 
+      });
+    }
+
+    // Update purchase status
+    purchase.status = 'rejected';
+    purchase.approvedBy = adminId;
+    purchase.approvedAt = new Date();
+    purchase.rejectionReason = reason || 'No reason provided';
+    await purchase.save({ session });
+
+    await session.commitTransaction();
+
+    // Emit socket updates
+    getIO().to('marketplace-updates').emit('listing-available', { listingId: purchase.listingId });
+    getIO().to('admin-updates').emit('purchase-rejected', { purchaseId: id });
+
+    sendSuccess(res, purchase, 'Purchase rejected successfully');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 400);
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Reset daily quotas for all agents (allocate free daily quota and cancel active listings)
+ */
+export const resetDailyQuotas = async (_req: Request, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    // Get system settings for daily quota allocation
+    const settings = await SystemSettings.findById('system_settings_singleton').session(session);
+    if (!settings) throw new Error('Settings not found');
+
+    // Allocate daily quota to all agents (set quotaBalance to dailyPurchaseLimit)
+    await User.updateMany(
+      { role: { $in: ['agent', 'child'] } },
+      { $set: { quotaBalance: settings.dailyPurchaseLimit } },
+      { session }
+    );
+
+    // Cancel all active listings
+    await QuotaListing.updateMany(
+      { status: 'active' },
+      { $set: { status: 'cancelled' } },
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    // Emit socket update to all users
+    getIO().emit('daily-quota-reset', { dailyQuota: settings.dailyPurchaseLimit });
+
+    sendSuccess(res, { dailyQuota: settings.dailyPurchaseLimit }, 'Daily quotas allocated successfully');
+  } catch (error: any) {
+    await session.abortTransaction();
+    sendError(res, error.message, 500);
+  } finally {
+    session.endSession();
+  }
+};
+

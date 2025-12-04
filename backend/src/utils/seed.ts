@@ -1,5 +1,4 @@
 import { User } from '../models/User';
-import { Pool } from '../models/Pool';
 import { SystemSettings } from '../models/SystemSettings';
 
 export const runDatabaseSeed = async () => {
@@ -21,26 +20,66 @@ export const runDatabaseSeed = async () => {
       console.log('✅ Default superadmin created (Phone: 01700000000, Password: admin123)');
     }
 
-    // Create pool if doesn't exist
-    const poolExists = await Pool.findById('pool_singleton');
-    if (!poolExists) {
-      await Pool.create({
-        _id: 'pool_singleton',
-        availableQuota: 10000,
-      });
-      console.log('✅ Pool created with 10000 quota');
-    }
-
     // Create system settings if doesn't exist
     const settingsExists = await SystemSettings.findById('system_settings_singleton');
     if (!settingsExists) {
       await SystemSettings.create({
         _id: 'system_settings_singleton',
-        dailyPurchaseLimit: 100,
+        dailyPurchaseLimit: 100, // Free daily quota allocation
         creditPrice: 1,
-        quotaPrice: 20,
+        quotaPrice: 20, // Price for marketplace trading
       });
-      console.log('✅ System settings created');
+      console.log('✅ System settings created (Daily allocation: 100 quota)');
+    }
+
+    // Create Agent 1
+    const agent1Exists = await User.findOne({ phone: '01700000001' });
+    let agent1Id;
+    if (!agent1Exists) {
+      const agent1 = await User.create({
+        name: 'Agent One',
+        phone: '01700000001',
+        password: 'password123',
+        role: 'agent',
+        status: 'active',
+        creditBalance: 1000,
+        quotaBalance: 100, // Daily free quota
+      });
+      agent1Id = agent1._id;
+      console.log('✅ Agent 1 created (Phone: 01700000001, Password: password123)');
+    } else {
+      agent1Id = agent1Exists._id;
+    }
+
+    // Create Agent 2
+    const agent2Exists = await User.findOne({ phone: '01700000002' });
+    if (!agent2Exists) {
+      await User.create({
+        name: 'Agent Two',
+        phone: '01700000002',
+        password: 'password123',
+        role: 'agent',
+        status: 'active',
+        creditBalance: 500,
+        quotaBalance: 100, // Daily free quota
+      });
+      console.log('✅ Agent 2 created (Phone: 01700000002, Password: password123)');
+    }
+
+    // Create Child Agent (child of Agent 1)
+    const childAgentExists = await User.findOne({ phone: '01700000003' });
+    if (!childAgentExists && agent1Id) {
+      await User.create({
+        name: 'Child Agent',
+        phone: '01700000003',
+        password: 'password123',
+        role: 'child',
+        status: 'active',
+        parentId: agent1Id, // Fixed: use parentId instead of createdBy
+        creditBalance: 0,
+        quotaBalance: 50,
+      });
+      console.log('✅ Child Agent created (Phone: 01700000003, Password: password123, Parent: Agent 1)');
     }
 
     console.log('✅ Database seed check completed');

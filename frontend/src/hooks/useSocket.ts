@@ -91,7 +91,14 @@ export const useSocket = () => {
         socketRef.current = null;
       }
     };
-  }, [user, setAvailableQuota, updateQuotaBalance, updateCreditBalance]);
+}, [user, setAvailableQuota, updateQuotaBalance, updateCreditBalance]);
 
   return socketRef.current;
 };
+
+// Create singleton socket instance for components outside hooks
+export const socket = io(SOCKET_URL, {
+  withCredentials: true,
+  transports: ['websocket'],
+  autoConnect: false,
+});

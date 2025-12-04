@@ -53,7 +53,7 @@ export default function BuyQuotaModal({ isOpen, onClose }: BuyQuotaModalProps) {
 
   const quotaRequestMutation = useMutation({
     mutationFn: async (data: any) => {
-      await api.post('/quota-request/request', { amount: data.amount });
+      await api.post('/quota-request/request', data);
     },
     onSuccess: () => {
       toast.success('Quota request submitted successfully to your parent agent!');
@@ -88,7 +88,26 @@ export default function BuyQuotaModal({ isOpen, onClose }: BuyQuotaModalProps) {
   };
 
   const onChildSubmit = (data: QuotaRequestInputs) => {
-    quotaRequestMutation.mutate(data);
+    const paymentDetails: any = {
+      transactionId: data.transactionId,
+      transactionDate: data.transactionDate,
+    };
+
+    if (data.paymentMethod === 'bank_transfer') {
+      paymentDetails.bankName = data.bankName;
+      paymentDetails.accountNumber = data.accountNumber;
+    } else {
+      paymentDetails.provider = data.provider;
+      paymentDetails.phoneNumber = data.phoneNumber;
+    }
+
+    const requestData = {
+      amount: data.amount,
+      paymentMethod: data.paymentMethod,
+      paymentDetails,
+    };
+
+    quotaRequestMutation.mutate(requestData);
   };
 
   return (

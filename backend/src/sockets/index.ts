@@ -24,6 +24,12 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
+    // Join marketplace room for real-time listing updates
+    socket.on('join-marketplace-room', () => {
+      socket.join('marketplace-updates');
+      console.log(`Socket ${socket.id} joined marketplace-updates room`);
+    });
+
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
     });

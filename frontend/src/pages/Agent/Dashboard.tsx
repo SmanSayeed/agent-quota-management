@@ -3,7 +3,6 @@ import { useAuthStore } from '../../store/authStore';
 import { usePoolStore } from '../../store/poolStore';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import LivePoolQuota from '../../components/ui/LivePoolQuota';
 import BuyCreditModal from '../../components/modals/BuyCreditModal';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
@@ -95,8 +94,7 @@ export default function AgentDashboard() {
             
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-bold text-base-content">
-                <span className="text-secondary mr-1">৳</span>
-                {user?.creditBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {user?.creditBalance?.toLocaleString()}
               </span>
             </div>
 
@@ -113,14 +111,25 @@ export default function AgentDashboard() {
           </div>
         </Card>
 
-        {/* Live Global Pool */}
+        {/* Daily Quota Allocation */}
         <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
-          <div className="flex flex-col gap-2">
-            <h3 className="text-lg font-semibold text-base-content/80">Live Global Pool</h3>
-            <div className="flex items-center justify-center py-4">
-              <LivePoolQuota showLabel={false} className="scale-125" />
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-base-content/80">Daily Quota Allocation</h3>
+              <p className="text-sm text-base-content/50 mt-1">Free quota reset daily</p>
             </div>
-            <p className="text-center text-sm text-base-content/50">Real-time availability</p>
+            
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold text-success">{dailyPurchaseLimit || 100}</span>
+              <span className="text-lg text-base-content/60 font-medium">quota/day</span>
+            </div>
+
+            <div className="alert alert-success text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>Resets automatically every day</span>
+            </div>
           </div>
         </Card>
 

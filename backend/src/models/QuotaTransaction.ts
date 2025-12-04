@@ -1,12 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type TransactionType = 'normal' | 'extraPool' | 'agentToChild' | 'liveToPool';
+export type TransactionType = 'normal' | 'extraPool' | 'agentToChild' | 'liveToPool' | 'marketplaceSale';
 
 export interface IQuotaTransaction extends Document {
   type: TransactionType;
   quantity: number;
   agentId: mongoose.Types.ObjectId;
   childId?: mongoose.Types.ObjectId;
+  sellerId?: mongoose.Types.ObjectId;
+  purchaseId?: mongoose.Types.ObjectId;
   creditCost: number;
   poolQuotaBefore?: number;
   poolQuotaAfter?: number;
@@ -21,7 +23,7 @@ const quotaTransactionSchema = new Schema<IQuotaTransaction>(
   {
     type: {
       type: String,
-      enum: ['normal', 'extraPool', 'agentToChild', 'liveToPool'],
+      enum: ['normal', 'extraPool', 'agentToChild', 'liveToPool', 'marketplaceSale'],
       required: true,
     },
     quantity: {
@@ -37,6 +39,16 @@ const quotaTransactionSchema = new Schema<IQuotaTransaction>(
     childId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+      default: null,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    purchaseId: {
+      type: Schema.Types.ObjectId,
+      ref: 'QuotaPurchase',
       default: null,
     },
     creditCost: {

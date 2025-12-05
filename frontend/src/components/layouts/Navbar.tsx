@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../api/axios';
 import { socket } from '../../hooks/useSocket';
+import ThemeToggle from '../ThemeToggle';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -92,6 +93,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             </div>
           </div>
         )}
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Info and Avatar */}
         <div className="hidden lg:flex flex-col items-end mr-2">

@@ -23,6 +23,27 @@
   --radius-btn: 0.3rem;
 }
 
+@plugin "daisyui/theme" {
+  name: "light";
+  color-scheme: light;
+  --color-primary: oklch(49% 0.20 250);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(70% 0.16 50);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(65% 0.14 180);
+  --color-neutral: oklch(23% 0.03 240);
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(96% 0.005 240);
+  --color-base-300: oklch(92% 0.01 240);
+  --color-base-content: oklch(20% 0.02 240);
+  --color-info: oklch(60% 0.18 250);
+  --color-success: oklch(65% 0.15 140);
+  --color-warning: oklch(70% 0.18 50);
+  --color-error: oklch(60% 0.2 25);
+  --radius-box: 0.5rem;
+  --radius-btn: 0.3rem;
+}
+
 /* Custom animations for LivePoolQuota */
 @keyframes pulse-radar {
   0% {
@@ -75,21 +96,17 @@ button, a, input, select, textarea {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Smooth scroll behavior and dark background */
+/* Smooth scroll behavior */
 html {
   scroll-behavior: smooth;
-  background-color: #0f172a;
 }
 
 body {
-  background-color: #0f172a;
-  color: #f8fafc;
   min-height: 100vh;
 }
 
 #root {
   min-height: 100vh;
-  background-color: #0f172a;
 }
 
 /* Custom scrollbar for desktop, hidden on mobile */

@@ -40,8 +40,9 @@ function App() {
 
   useEffect(() => {
     checkAuth();
-    // Force theme application
-    document.documentElement.setAttribute('data-theme', 'darkblue');
+    // Load theme from localStorage, fallback to darkblue
+    const savedTheme = localStorage.getItem('theme') || 'darkblue';
+    document.documentElement.setAttribute('data-theme', savedTheme);
   }, [checkAuth]);
 
   if (isLoading) {

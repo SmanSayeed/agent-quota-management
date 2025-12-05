@@ -5,6 +5,7 @@ import api from '../../api/axios';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import Input from '../../components/ui/Input';
 import { DataTable } from '../../components/ui/DataTable';
 import toast from 'react-hot-toast';
 
@@ -35,6 +36,8 @@ export default function AgentQuotaRequests() {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<QuotaRequest | null>(null);
   const [approvedAmount, setApprovedAmount] = useState<string>('');
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Pagination & Filtering State
   const [pagination, setPagination] = useState<PaginationState>({
@@ -78,13 +81,13 @@ export default function AgentQuotaRequests() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.put(`/quota-request/reject/${id}`);
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      await api.put(`/quota-request/reject/${id}`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotaRequests'] });
       toast.success('Quota request rejected');
-      handleCloseModal();
+      handleCloseRejectModal();
     },
     onError: (error: any) => {
       const message = error.response?.data?.error?.message || 'Failed to reject request';
@@ -110,6 +113,25 @@ export default function AgentQuotaRequests() {
       return;
     }
     approveMutation.mutate({ id: selectedRequest._id, amount });
+  };
+
+  const handleRejectClick = (id: string) => {
+    setRejectId(id);
+    setRejectReason('');
+    handleCloseModal(); // Close the details modal first
+  };
+
+  const handleCloseRejectModal = () => {
+    setRejectId(null);
+    setRejectReason('');
+  };
+
+  const confirmReject = () => {
+    if (rejectId && rejectReason.trim()) {
+      rejectMutation.mutate({ id: rejectId, reason: rejectReason });
+    } else {
+      toast.error('Please provide a rejection reason');
+    }
   };
 
   const columns = useMemo<ColumnDef<QuotaRequest>[]>(
@@ -316,8 +338,7 @@ export default function AgentQuotaRequests() {
               </Button>
               <Button
                 variant="error"
-                onClick={() => rejectMutation.mutate(selectedRequest._id)}
-                loading={rejectMutation.isPending}
+                onClick={() => handleRejectClick(selectedRequest._id)}
               >
                 Reject
               </Button>
@@ -331,6 +352,42 @@ export default function AgentQuotaRequests() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Reject Confirmation Modal */}
+      <Modal
+        isOpen={!!rejectId}
+        onClose={handleCloseRejectModal}
+        title="Reject Quota Request"
+      >
+        <div className="space-y-4">
+          <div className="alert alert-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>Please provide a reason for rejection. The child agent will be notified.</span>
+          </div>
+          
+          <Input
+            label="Reason for Rejection"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="e.g., Insufficient payment proof"
+          />
+          
+          <div className="modal-action">
+            <Button variant="ghost" onClick={handleCloseRejectModal}>
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              onClick={confirmReject}
+              loading={rejectMutation.isPending}
+            >
+              Reject Request
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -31,7 +31,7 @@ export const buyQuota = async (req: AuthRequest, res: Response) => {
     if (user.creditBalance < cost) throw new Error('Insufficient credit balance');
 
     // Determine how much can be bought as normal quota
-    const remainingDaily = Math.max(0, settings.dailyPurchaseLimit - user.todayPurchased);
+    const remainingDaily = Math.max(0, settings.dailyFreeQuota - user.todayPurchased);
     const normalQty = quantity <= remainingDaily ? quantity : remainingDaily;
     const extraQty = quantity - normalQty;
 
@@ -216,6 +216,12 @@ export const getQuotaHistory = async (req: AuthRequest, res: Response) => {
   }
 };
 
+import { MarketplaceStats } from '../models/MarketplaceStats';
+
+// ... existing imports ...
+
+// ... existing functions ...
+
 /**
  * Create a quota listing for the marketplace
  */
@@ -248,11 +254,22 @@ export const createListing = async (req: AuthRequest, res: Response) => {
       status: 'active',
     }], { session });
 
+    // Update marketplace stats atomically
+    await MarketplaceStats.findOneAndUpdate(
+      {},
+      { $inc: { totalQuotaAvailable: quantity } },
+      { session, upsert: true }
+    );
+
     await session.commitTransaction();
 
     // Emit socket update
     getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser.quotaBalance });
     getIO().to('marketplace-updates').emit('listing-created', listing[0]);
+    
+    // Emit stats update
+    const stats = await MarketplaceStats.getStats();
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: stats.totalQuotaAvailable });
 
     sendSuccess(res, listing[0], 'Listing created successfully');
   } catch (error: any) {
@@ -347,11 +364,22 @@ export const cancelListing = async (req: AuthRequest, res: Response) => {
     listing.status = 'cancelled';
     await listing.save({ session });
 
+    // Update marketplace stats atomically
+    await MarketplaceStats.findOneAndUpdate(
+      {},
+      { $inc: { totalQuotaAvailable: -listing.quantity } },
+      { session }
+    );
+
     await session.commitTransaction();
 
     // Emit socket updates
     getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser!.quotaBalance });
     getIO().to('marketplace-updates').emit('listing-cancelled', { listingId: id });
+    
+    // Emit stats update
+    const stats = await MarketplaceStats.getStats();
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: stats.totalQuotaAvailable });
 
     sendSuccess(res, null, 'Listing cancelled successfully');
   } catch (error: any) {
@@ -364,52 +392,90 @@ export const cancelListing = async (req: AuthRequest, res: Response) => {
 
 /**
  * Purchase quota from marketplace (creates pending purchase)
+ * NOW SUPPORTS PARTIAL PURCHASES
  */
 export const purchaseFromMarketplace = async (req: AuthRequest, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
     const { listingId } = req.params;
+    const { quantity } = req.body;
     const userId = req.user!._id;
 
+    // Validate quantity
+    if (!quantity || quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+
+    // Find and lock the listing atomically
     const listing = await QuotaListing.findOne({
       _id: listingId,
       status: 'active',
+      quantity: { $gte: quantity }, // Must have enough quota
     }).session(session);
 
-    if (!listing) throw new Error('Listing not found or no longer available');
+    if (!listing) throw new Error('Listing not found or insufficient quota available');
+    
     if (listing.sellerId.toString() === userId.toString()) {
       throw new Error('Cannot purchase your own listing');
     }
 
+    // Calculate total price for requested quantity
+    const totalPrice = quantity * listing.pricePerQuota;
+
     // Check if buyer has sufficient credit
     const buyer = await User.findById(userId).session(session);
     if (!buyer) throw new Error('User not found');
-    if (buyer.creditBalance < listing.totalPrice) {
+    if (buyer.creditBalance < totalPrice) {
       throw new Error('Insufficient credit balance');
     }
 
-    // Create pending purchase
+    // Atomically decrease listing quantity (prevents race condition)
+    const updatedListing = await QuotaListing.findOneAndUpdate(
+      { 
+        _id: listingId, 
+        quantity: { $gte: quantity },
+        status: 'active'
+      },
+      { 
+        $inc: { quantity: -quantity },
+        // Mark as sold if this purchase takes all remaining quota
+        ...(listing.quantity === quantity && { status: 'sold' })
+      },
+      { session, new: true }
+    );
+
+    if (!updatedListing) {
+      throw new Error('Not enough quota available (concurrent purchase)');
+    }
+
+    // Create pending purchase with requested quantity
     const purchase = await QuotaPurchase.create([{
       listingId: listing._id,
       buyerId: userId,
       sellerId: listing.sellerId,
-      quantity: listing.quantity,
+      quantity: quantity, // Actual quantity being purchased
       pricePerQuota: listing.pricePerQuota,
-      totalPrice: listing.totalPrice,
+      totalPrice: totalPrice, // Calculated based on quantity
       status: 'pending',
     }], { session });
 
-    // Update listing to mark it as having a pending purchase
-    listing.purchaseId = purchase[0]._id;
-    listing.status = 'sold'; // Temporarily mark as sold
-    await listing.save({ session });
+    // Update marketplace stats atomically (reduce available quota)
+    await MarketplaceStats.findOneAndUpdate(
+      {},
+      { $inc: { totalQuotaAvailable: -quantity } },
+      { session }
+    );
 
     await session.commitTransaction();
 
     // Emit socket updates
     getIO().to('marketplace-updates').emit('listing-purchased', { listingId: listing._id });
     getIO().to('admin-updates').emit('purchase-pending', purchase[0]);
+    
+    // Emit stats update
+    const stats = await MarketplaceStats.getStats();
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: stats.totalQuotaAvailable });
 
     sendSuccess(res, purchase[0], 'Purchase request submitted, awaiting admin approval');
   } catch (error: any) {
@@ -421,19 +487,29 @@ export const purchaseFromMarketplace = async (req: AuthRequest, res: Response) =
 };
 
 
-
 /**
  * Get total available quota in marketplace
  */
 export const getMarketplaceTotalQuota = async (_req: any, res: Response) => {
   try {
-    const result = await QuotaListing.aggregate([
-      { $match: { status: 'active' } },
-      { $group: { _id: null, totalQuota: { $sum: '$quantity' } } }
-    ]);
+    const stats = await MarketplaceStats.getStats();
+    sendSuccess(res, { totalQuota: stats.totalQuotaAvailable }, 'Total marketplace quota retrieved');
+  } catch (error: any) {
+    sendError(res, error.message, 500);
+  }
+};
 
-    const totalQuota = result.length > 0 ? result[0].totalQuota : 0;
-    sendSuccess(res, { totalQuota }, 'Total marketplace quota retrieved');
+/**
+ * Force recalculate marketplace stats (Admin only or system maintenance)
+ */
+export const recalculateStats = async (_req: any, res: Response) => {
+  try {
+    const total = await (MarketplaceStats as any).recalculate();
+    
+    // Emit real-time update to all clients
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: total });
+    
+    sendSuccess(res, { totalQuota: total }, 'Stats recalculated successfully');
   } catch (error: any) {
     sendError(res, error.message, 500);
   }

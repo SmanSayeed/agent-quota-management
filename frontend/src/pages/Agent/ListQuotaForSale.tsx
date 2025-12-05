@@ -9,6 +9,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { DataTable } from '../../components/ui/DataTable';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
 
 const listingSchema = z.object({
@@ -25,6 +26,10 @@ export default function ListQuotaForSale() {
   const [loading, setLoading] = useState(false);
   const [pageCount, setPageCount] = useState(1);
   const [{ pageIndex, pageSize }, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
+  // Modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
 
   const {
     register,
@@ -73,16 +78,23 @@ export default function ListQuotaForSale() {
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this listing?')) return;
+  const openCancelModal = (id: string) => {
+    setSelectedListingId(id);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!selectedListingId) return;
     
     try {
-      await api.delete(`/quota/listing/${id}`);
+      await api.delete(`/quota/listing/${selectedListingId}`);
       
       const { data: meData } = await api.get('/auth/me');
       updateQuotaBalance(meData.data.quotaBalance);
       
       toast.success('Listing cancelled successfully');
+      setShowCancelModal(false);
+      setSelectedListingId(null);
       fetchListings(pageIndex, pageSize);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to cancel listing');
@@ -130,7 +142,7 @@ export default function ListQuotaForSale() {
           <Button 
             size="sm" 
             variant="ghost" 
-            onClick={() => handleCancel(row.original._id)}
+            onClick={() => openCancelModal(row.original._id)}
           >
             Cancel
           </Button>
@@ -208,6 +220,19 @@ export default function ListQuotaForSale() {
           isLoading={loading}
         />
       </Card>
+
+      {/* Cancel Modal */}
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setSelectedListingId(null);
+        }}
+        onConfirm={handleCancelConfirm}
+        title="Cancel Listing"
+        message="Are you sure you want to cancel this listing? The quota will be returned to your balance."
+        confirmText="Yes, Cancel Listing"
+      />
     </div>
   );
 }

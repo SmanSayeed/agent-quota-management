@@ -21,7 +21,7 @@ export default function MainLayout() {
           <Outlet />
         </main>
       </div>
-      <div className="drawer-side z-20">
+      <div className="drawer-side z-[100]">
         <label
           htmlFor="my-drawer-2"
           aria-label="close sidebar"

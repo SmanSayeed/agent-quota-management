@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISystemSettingsBase {
-  dailyPurchaseLimit: number;
   creditPrice: number; // How much 1 credit costs in BDT (e.g., 1 BDT = 1 credit)
   quotaPrice: number; // How many credits 1 quota costs (e.g., 20 credits per quota)
+  dailyFreeQuota: number; // Free quota given daily
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,11 +18,6 @@ const systemSettingsSchema = new Schema<ISystemSettings>(
       type: String,
       default: 'system_settings_singleton',
     },
-    dailyPurchaseLimit: {
-      type: Number,
-      required: true,
-      default: 100,
-    },
     creditPrice: {
       type: Number,
       required: true,
@@ -32,6 +27,11 @@ const systemSettingsSchema = new Schema<ISystemSettings>(
       type: Number,
       required: true,
       default: 20, // 20 credits per quota by default
+    },
+    dailyFreeQuota: {
+      type: Number,
+      required: true,
+      default: 100, // 100 free quota per day by default
     },
   },
   {

@@ -9,7 +9,9 @@ import {
   getMarketplace,
   getMyListings,
   cancelListing,
-  purchaseFromMarketplace
+  purchaseFromMarketplace,
+  getMarketplaceTotalQuota,
+  recalculateStats
 } from '../controllers';
 import { protect, authorize } from '../middleware';
 
@@ -25,6 +27,8 @@ router.get('/pool', authorize('agent', 'superadmin'), getPoolInfo);
 router.get('/history', authorize('agent'), getQuotaHistory);
 
 // Marketplace routes
+router.get('/stats', authorize('agent', 'superadmin'), getMarketplaceTotalQuota);
+router.post('/stats/recalculate', authorize('superadmin'), recalculateStats);
 router.post('/listing', authorize('agent'), createListing);
 router.get('/marketplace', authorize('agent', 'superadmin'), getMarketplace);
 router.get('/my-listings', authorize('agent'), getMyListings);

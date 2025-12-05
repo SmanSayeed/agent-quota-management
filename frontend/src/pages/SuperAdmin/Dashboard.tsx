@@ -6,9 +6,12 @@ import api from '../../api/axios';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
+import { socket } from '../../hooks/useSocket';
+
 const updateSettingsSchema = z.object({
-  dailyPurchaseLimit: z.coerce.number().min(0, 'Limit must be a positive number'),
+  dailyFreeQuota: z.coerce.number().min(0, 'Quota must be a positive number'),
   creditPrice: z.coerce.number().min(0.01, 'Credit price must be greater than 0'),
   quotaPrice: z.coerce.number().min(1, 'Quota price must be at least 1'),
 });
@@ -25,11 +28,15 @@ type CreateSuperadminInputs = z.infer<typeof createSuperadminSchema>;
 export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [totalMarketQuota, setTotalMarketQuota] = useState(0);
+  const [recalculating, setRecalculating] = useState(false);
+  const [showRecalculateModal, setShowRecalculateModal] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<UpdateSettingsInputs>({
     resolver: zodResolver(updateSettingsSchema),
@@ -46,14 +53,50 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchPoolData();
+    fetchStats();
+
+    if (!socket.connected) socket.connect();
+    socket.emit('join-marketplace-room');
+
+    const handleStatsUpdated = (data: { totalQuotaAvailable: number }) => {
+      setTotalMarketQuota(data.totalQuotaAvailable);
+    };
+
+    socket.on('stats-updated', handleStatsUpdated);
+    return () => {
+      socket.off('stats-updated', handleStatsUpdated);
+    };
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const { data } = await api.get('/quota/stats');
+      setTotalMarketQuota(data.data.totalQuota);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const handleRecalculateConfirm = async () => {
+    try {
+      setRecalculating(true);
+      const { data } = await api.post('/quota/stats/recalculate');
+      setTotalMarketQuota(data.data.totalQuota);
+      toast.success('Stats recalculated successfully');
+      setShowRecalculateModal(false);
+    } catch (error: any) {
+      toast.error('Failed to recalculate stats');
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   const fetchPoolData = async () => {
     try {
 
       // Fetch settings for prices and limits
       const settingsResponse = await api.get('/admin/settings');
-      setValue('dailyPurchaseLimit', settingsResponse.data.data.dailyPurchaseLimit);
+      setValue('dailyFreeQuota', settingsResponse.data.data.dailyFreeQuota || 100);
       setValue('creditPrice', settingsResponse.data.data.creditPrice || 1);
       setValue('quotaPrice', settingsResponse.data.data.quotaPrice || 20);
     } catch (error) {
@@ -103,6 +146,38 @@ export default function SuperAdminDashboard() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Total Market Quota Card */}
+        <Card className="bg-base-100 border border-base-content/5 shadow-lg">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold text-base-content/80">Total Market Quota</h3>
+                <p className="text-sm text-base-content/50 mt-1">Available to buy in marketplace</p>
+              </div>
+              <button 
+                onClick={() => setShowRecalculateModal(true)}
+                disabled={recalculating}
+                className="btn btn-warning btn-outline btn-xs gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${recalculating ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {recalculating ? 'Fixing...' : 'Recalculate'}
+              </button>
+            </div>
+            
+            <div className="flex items-baseline gap-2">
+              <span className="text-5xl font-bold">{totalMarketQuota.toLocaleString()}</span>
+              <span className="text-lg text-base-content/60 font-medium">quota</span>
+            </div>
+
+            <div className="alert alert-success text-xs bg-success/10 text-base-content border-success/20">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="font-medium">Live updates active</span>
+            </div>
+          </div>
+        </Card>
+
         {/* Daily Quota Allocation Info */}
         <Card className="bg-base-100 border border-base-content/5 shadow-lg">
           <div className="flex flex-col gap-4">
@@ -112,7 +187,7 @@ export default function SuperAdminDashboard() {
             </div>
             
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold text-success">100</span>
+              <span className="text-5xl font-bold text-success">{watch('dailyFreeQuota') || 100}</span>
               <span className="text-lg text-base-content/60 font-medium">quota/day</span>
             </div>
 
@@ -127,7 +202,7 @@ export default function SuperAdminDashboard() {
 
         {/* Global Settings */}
 
-        <Card className="bg-base-100 border border-base-content/5 shadow-lg">
+        <Card className="bg-base-100 border border-base-content/5 shadow-lg md:col-span-2">
           <div className="flex flex-col gap-4 mb-4">
             <div>
               <h3 className="text-lg font-semibold text-base-content/80">Global Settings</h3>
@@ -138,10 +213,10 @@ export default function SuperAdminDashboard() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="p-4 bg-base-200/30 rounded-xl border border-base-content/5 space-y-4">
               <Input
-                label="Daily Purchase Limit"
+                label="Daily Free Quota"
                 type="number"
-                error={errors.dailyPurchaseLimit?.message}
-                {...register('dailyPurchaseLimit')}
+                error={errors.dailyFreeQuota?.message}
+                {...register('dailyFreeQuota')}
                 className="bg-base-100"
               />
 
@@ -226,6 +301,22 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Recalculate Stats Modal */}
+      <ConfirmModal
+        isOpen={showRecalculateModal}
+        onClose={() => setShowRecalculateModal(false)}
+        onConfirm={handleRecalculateConfirm}
+        title="Recalculate Marketplace Stats"
+        message="Are you sure you want to recalculate the total available quota? This will scan all active listings to ensure the counter is accurate."
+        confirmText={recalculating ? "Recalculating..." : "Yes, Recalculate"}
+        cancelText="Cancel"
+      >
+        <div className="alert alert-warning">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <span>This action is safe but should only be used if you suspect the counter is incorrect.</span>
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

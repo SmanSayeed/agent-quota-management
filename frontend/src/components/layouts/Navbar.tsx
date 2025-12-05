@@ -1,18 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import api from '../../api/axios';
+import { socket } from '../../hooks/useSocket';
+
 interface NavbarProps {
   onMenuClick: () => void;
 }
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const { user, logout } = useAuthStore();
+  const [totalMarketQuota, setTotalMarketQuota] = useState(0);
 
   // Only show pool quota for superadmin and agent (not for child)
-  const showPoolQuota = user?.role === 'superadmin' || user?.role === 'agent';
-  
-  // Only show Share Quota buttons for agents
-  const showAgentActions = user?.role === 'agent';
+  const showMarketStats = user?.role === 'superadmin' || user?.role === 'agent';
+
+  useEffect(() => {
+    if (!showMarketStats) return;
+
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get('/quota/stats');
+        setTotalMarketQuota(data.data.totalQuota);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+
+    // Connect socket if not connected
+    if (!socket.connected) {
+      socket.connect();
+    }
+    
+    // Join marketplace room to get updates
+    socket.emit('join-marketplace-room');
+
+    const handleStatsUpdated = (data: { totalQuotaAvailable: number }) => {
+      setTotalMarketQuota(data.totalQuotaAvailable);
+    };
+
+    socket.on('stats-updated', handleStatsUpdated);
+
+    return () => {
+      socket.off('stats-updated', handleStatsUpdated);
+    };
+  }, [showMarketStats]);
 
   return (
     <div className="navbar bg-base-300 shadow-sm sticky top-0 z-50 min-h-[4rem] px-2 sm:px-4">
@@ -45,6 +79,20 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       </div>
       <div className="flex-none flex items-center gap-1 sm:gap-2 md:gap-4">
         
+        {/* Live Market Quota Counter */}
+        {showMarketStats && (
+          <div className="hidden md:flex items-center gap-3 bg-base-100/50 px-3 py-1.5 rounded-full border border-base-content/10 mr-2 shadow-sm">
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-300"></span>
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="text-[10px] uppercase font-bold text-base-content tracking-wider">Market Quota</span>
+              <span className="text-sm font-bold font-mono text-base-content">{totalMarketQuota.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
         {/* User Info and Avatar */}
         <div className="hidden lg:flex flex-col items-end mr-2">
           <span className="text-sm font-bold truncate max-w-[120px]">{user?.name}</span>
@@ -71,6 +119,21 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               <span className="text-xs opacity-70 capitalize">{user?.role}</span>
             </li>
             <li className="lg:hidden"><div className="divider my-0"></div></li>
+            {/* Show Market Quota on mobile menu */}
+            {showMarketStats && (
+              <li className="md:hidden">
+                <div className="flex justify-between items-center bg-base-200/50 rounded-lg mb-2">
+                  <span className="text-xs font-bold opacity-70">Market Quota</span>
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-300"></span>
+                    </span>
+                    <span className="font-mono font-bold text-base-content">{totalMarketQuota.toLocaleString()}</span>
+                  </div>
+                </div>
+              </li>
+            )}
             <li>
               <Link to="/profile" className="justify-between">
                 Profile

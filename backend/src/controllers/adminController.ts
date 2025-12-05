@@ -126,7 +126,7 @@ export const getSettings = async (_req: Request, res: Response) => {
 
 export const updateSettings = async (req: Request, res: Response) => {
   try {
-    const { dailyPurchaseLimit, creditPrice, quotaPrice } = req.body;
+    const { dailyFreeQuota, creditPrice, quotaPrice } = req.body;
     
     const settings = await SystemSettings.findById('system_settings_singleton');
     if (!settings) {
@@ -134,7 +134,7 @@ export const updateSettings = async (req: Request, res: Response) => {
         return;
     }
 
-    if (dailyPurchaseLimit !== undefined) settings.dailyPurchaseLimit = dailyPurchaseLimit;
+    if (dailyFreeQuota !== undefined) settings.dailyFreeQuota = dailyFreeQuota;
     if (creditPrice !== undefined) settings.creditPrice = creditPrice;
     if (quotaPrice !== undefined) settings.quotaPrice = quotaPrice;
     await settings.save();
@@ -395,8 +395,15 @@ export const approvePurchase = async (req: any, res: Response) => {
   }
 };
 
+import { MarketplaceStats } from '../models/MarketplaceStats';
+
+// ... existing imports ...
+
+// ... existing functions ...
+
 /**
  * Reject a marketplace purchase
+ * Returns purchased quantity back to listing
  */
 export const rejectPurchase = async (req: any, res: Response) => {
   const session = await mongoose.startSession();
@@ -413,26 +420,25 @@ export const rejectPurchase = async (req: any, res: Response) => {
 
     if (!purchase) throw new Error('Purchase not found or already processed');
 
-    // Get the listing and return it to active status
+    // Get the listing and return purchased quantity
     const listing = await QuotaListing.findById(purchase.listingId).session(session);
     if (listing) {
-      // CRITICAL FIX: Return quota to seller
-      const seller = await User.findByIdAndUpdate(
-        listing.sellerId,
-        { $inc: { quotaBalance: listing.quantity } },
-        { session, new: true }
+      // Return purchased quota to listing
+      await QuotaListing.findByIdAndUpdate(
+        purchase.listingId,
+        { 
+          $inc: { quantity: purchase.quantity }, // Return purchased amount
+          status: 'active' // Always mark as active after rejection
+        },
+        { session }
       );
-      
-      if (!seller) throw new Error('Seller not found');
-      
-      listing.status = 'active';
-      listing.purchaseId = undefined;
-      await listing.save({ session });
-      
-      // Emit quota update to seller
-      getIO().to(listing.sellerId.toString()).emit('quota-balance-updated', { 
-        quotaBalance: seller.quotaBalance 
-      });
+
+      // Update marketplace stats atomically (add back the rejected quota)
+      await MarketplaceStats.findOneAndUpdate(
+        {},
+        { $inc: { totalQuotaAvailable: purchase.quantity } },
+        { session }
+      );
     }
 
     // Update purchase status
@@ -447,6 +453,10 @@ export const rejectPurchase = async (req: any, res: Response) => {
     // Emit socket updates
     getIO().to('marketplace-updates').emit('listing-available', { listingId: purchase.listingId });
     getIO().to('admin-updates').emit('purchase-rejected', { purchaseId: id });
+    
+    // Emit stats update
+    const stats = await MarketplaceStats.getStats();
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: stats.totalQuotaAvailable });
 
     sendSuccess(res, purchase, 'Purchase rejected successfully');
   } catch (error: any) {
@@ -468,10 +478,10 @@ export const resetDailyQuotas = async (_req: Request, res: Response) => {
     const settings = await SystemSettings.findById('system_settings_singleton').session(session);
     if (!settings) throw new Error('Settings not found');
 
-    // Allocate daily quota to all agents (set quotaBalance to dailyPurchaseLimit)
+    // Allocate daily quota to all agents (set quotaBalance to dailyFreeQuota)
     await User.updateMany(
       { role: { $in: ['agent', 'child'] } },
-      { $set: { quotaBalance: settings.dailyPurchaseLimit } },
+      { $set: { quotaBalance: settings.dailyFreeQuota } },
       { session }
     );
 
@@ -482,12 +492,22 @@ export const resetDailyQuotas = async (_req: Request, res: Response) => {
       { session }
     );
 
+    // Reset marketplace stats to 0 since all listings are cancelled
+    await MarketplaceStats.findOneAndUpdate(
+      {},
+      { totalQuotaAvailable: 0, lastUpdated: new Date() },
+      { session, upsert: true }
+    );
+
     await session.commitTransaction();
 
     // Emit socket update to all users
-    getIO().emit('daily-quota-reset', { dailyQuota: settings.dailyPurchaseLimit });
+    getIO().emit('daily-quota-reset', { dailyQuota: settings.dailyFreeQuota });
+    
+    // Emit stats update
+    getIO().to('marketplace-updates').emit('stats-updated', { totalQuotaAvailable: 0 });
 
-    sendSuccess(res, { dailyQuota: settings.dailyPurchaseLimit }, 'Daily quotas allocated successfully');
+    sendSuccess(res, { dailyQuota: settings.dailyFreeQuota }, 'Daily quotas allocated successfully');
   } catch (error: any) {
     await session.abortTransaction();
     sendError(res, error.message, 500);

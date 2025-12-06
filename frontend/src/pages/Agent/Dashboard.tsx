@@ -9,7 +9,7 @@ import api from '../../api/axios';
 
 export default function AgentDashboard() {
   const { user } = useAuthStore();
-  const { dailyPurchaseLimit, setPoolData } = usePoolStore();
+  const { dailyFreeQuota, setPoolData } = usePoolStore();
   const [isBuyCreditOpen, setIsBuyCreditOpen] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function AgentDashboard() {
           availableQuota: poolResponse.data.data.availableQuota,
           creditPrice: settingsResponse.data.data.creditPrice,
           quotaPrice: settingsResponse.data.data.quotaPrice,
-          dailyPurchaseLimit: settingsResponse.data.data.dailyPurchaseLimit,
+          dailyFreeQuota: settingsResponse.data.data.dailyFreeQuota,
         });
       } catch (error) {
         console.error('Failed to fetch data', error);
@@ -115,12 +115,12 @@ export default function AgentDashboard() {
         <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
           <div className="flex flex-col gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-base-content/80">Daily Quota Allocation</h3>
+              <h3 className="text-lg font-semibold text-base-content/80">Daily Free Quota</h3>
               <p className="text-sm text-base-content/50 mt-1">Free quota reset daily</p>
             </div>
             
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-success">{dailyPurchaseLimit || 100}</span>
+              <span className="text-4xl font-bold text-success">{dailyFreeQuota || 100}</span>
               <span className="text-lg text-base-content/60 font-medium">quota/day</span>
             </div>
 
@@ -129,31 +129,6 @@ export default function AgentDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <span>Resets automatically every day</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Daily Limit */}
-        <Card className="col-span-1 bg-base-100 border border-base-content/5 shadow-lg">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-base-content/80">Daily Purchase Limit</h3>
-              <p className="text-sm text-base-content/50 mt-1">Usage Today</p>
-            </div>
-            
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-base-content">
-                {user?.todayPurchased} <span className="text-base-content/40 text-xl">/ {dailyPurchaseLimit}</span>
-              </span>
-            </div>
-
-            <div className="w-full bg-base-300 rounded-full h-3 mt-2">
-              <div 
-                className={`h-3 rounded-full transition-all duration-500 ${
-                  (user?.todayPurchased || 0) >= (dailyPurchaseLimit || 1) ? 'bg-error' : 'bg-success'
-                }`}
-                style={{ width: `${Math.min(((user?.todayPurchased || 0) / (dailyPurchaseLimit || 1)) * 100, 100)}%` }}
-              ></div>
             </div>
           </div>
         </Card>

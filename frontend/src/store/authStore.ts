@@ -12,7 +12,7 @@ interface User {
   status: 'pending' | 'active' | 'disabled';
   creditBalance?: number;
   quotaBalance?: number;
-  todayPurchased?: number;
+
   parentId?: string;
 }
 

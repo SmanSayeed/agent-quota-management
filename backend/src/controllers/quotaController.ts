@@ -13,6 +13,9 @@ import { sendSuccess, sendError, sendPaginatedSuccess } from '../utils';
 /**
  * Purchase quota (normal + extra from pool)
  */
+/**
+ * Purchase quota (unlimited, generated)
+ */
 export const buyQuota = async (req: AuthRequest, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -30,84 +33,39 @@ export const buyQuota = async (req: AuthRequest, res: Response) => {
     const cost = quantity * settings.quotaPrice;
     if (user.creditBalance < cost) throw new Error('Insufficient credit balance');
 
-    // Determine how much can be bought as normal quota
-    const remainingDaily = Math.max(0, settings.dailyFreeQuota - user.todayPurchased);
-    const normalQty = quantity <= remainingDaily ? quantity : remainingDaily;
-    const extraQty = quantity - normalQty;
-
     // Update user atomically (credit and quota)
     const updatedUser = await User.findOneAndUpdate(
       { _id: userId, creditBalance: { $gte: cost } },
-      { $inc: { quotaBalance: quantity, creditBalance: -cost, todayPurchased: normalQty } },
+      { $inc: { quotaBalance: quantity, creditBalance: -cost } },
       { session, new: true }
     );
     if (!updatedUser) throw new Error('Insufficient credit balance or concurrent transaction failed');
 
-    // If extra quota is needed, deduct from pool atomically
-    let updatedPool = null as any;
-    let poolBefore = 0;
-    if (extraQty > 0) {
-      const pool = await Pool.findById('pool_singleton').session(session);
-      if (!pool) throw new Error('Pool not found');
-      poolBefore = pool.availableQuota;
-      updatedPool = await Pool.findOneAndUpdate(
-        { _id: 'pool_singleton', availableQuota: { $gte: extraQty } },
-        { $inc: { availableQuota: -extraQty } },
-        { session, new: true }
-      );
-      if (!updatedPool) throw new Error('Insufficient pool quota for extra purchase');
-    } else {
-      const pool = await Pool.findById('pool_singleton').session(session);
-      if (pool) poolBefore = pool.availableQuota;
-      updatedPool = pool;
-    }
-
     // Log transaction
-    const transactions = [] as any[];
     const userBeforeQuota = user.quotaBalance;
     const userBeforeCredit = user.creditBalance;
-    if (normalQty > 0) {
-      transactions.push({
-        type: 'normal',
-        quantity: normalQty,
-        agentId: userId,
-        creditCost: normalQty * settings.quotaPrice,
-        agentQuotaBefore: userBeforeQuota,
-        agentQuotaAfter: userBeforeQuota + normalQty,
-        agentCreditBefore: userBeforeCredit,
-        agentCreditAfter: userBeforeCredit - normalQty * settings.quotaPrice,
-        poolQuotaBefore: poolBefore,
-        poolQuotaAfter: poolBefore,
-      });
-    }
-    if (extraQty > 0) {
-      const afterUserQuota = updatedUser.quotaBalance;
-      const afterUserCredit = updatedUser.creditBalance;
-      transactions.push({
-        type: 'extraPool',
-        quantity: extraQty,
-        agentId: userId,
-        creditCost: extraQty * settings.quotaPrice,
-        agentQuotaBefore: userBeforeQuota + normalQty,
-        agentQuotaAfter: afterUserQuota,
-        agentCreditBefore: userBeforeCredit - normalQty * settings.quotaPrice,
-        agentCreditAfter: afterUserCredit,
-        poolQuotaBefore: poolBefore,
-        poolQuotaAfter: updatedPool?.availableQuota ?? poolBefore,
-      });
-    }
-    await QuotaTransaction.create(transactions, { session, ordered: true });
+    
+    await QuotaTransaction.create([{
+      type: 'normal',
+      quantity: quantity,
+      agentId: userId,
+      creditCost: cost,
+      agentQuotaBefore: userBeforeQuota,
+      agentQuotaAfter: userBeforeQuota + quantity,
+      agentCreditBefore: userBeforeCredit,
+      agentCreditAfter: userBeforeCredit - cost,
+      // Pool fields are removed or set to 0/null as pool is no longer used for purchases
+      poolQuotaBefore: 0,
+      poolQuotaAfter: 0,
+    }], { session });
 
     await session.commitTransaction();
 
     // Emit socket updates
-    if (updatedPool) {
-      getIO().to('pool-updates').emit('pool-updated', { availableQuota: updatedPool.availableQuota });
-    }
     getIO().to(userId.toString()).emit('quota-balance-updated', { quotaBalance: updatedUser.quotaBalance });
     getIO().to(userId.toString()).emit('credit-balance-updated', { creditBalance: updatedUser.creditBalance });
 
-    sendSuccess(res, { normalQuantity: normalQty, extraQuantity: extraQty }, 'Quota purchased successfully');
+    sendSuccess(res, { quantity }, 'Quota purchased successfully');
   } catch (error: any) {
     await session.abortTransaction();
     sendError(res, error.message, 400);

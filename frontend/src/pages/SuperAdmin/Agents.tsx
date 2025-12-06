@@ -20,8 +20,6 @@ interface Agent {
   status: 'pending' | 'active' | 'disabled';
   creditBalance: number;
   quotaBalance: number;
-  dailyPurchaseLimit: number;
-  todayPurchased: number;
 }
 
 const updateAgentSchema = z.object({
@@ -34,7 +32,6 @@ export default function Agents() {
   const queryClient = useQueryClient();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { dailyPurchaseLimit } = usePoolStore();
   
   // Pagination & Filtering State
   const [pagination, setPagination] = useState<PaginationState>({
@@ -140,14 +137,7 @@ export default function Agents() {
         accessorKey: 'quotaBalance',
         header: 'Quota',
       },
-      {
-        header: 'Daily Limit',
-        cell: ({ row }) => (
-          <span>
-            {row.original.todayPurchased} / {dailyPurchaseLimit}
-          </span>
-        ),
-      },
+
       {
         id: 'actions',
         header: 'Actions',
@@ -158,7 +148,7 @@ export default function Agents() {
         ),
       },
     ],
-    [dailyPurchaseLimit]
+    []
   );
 
   return (

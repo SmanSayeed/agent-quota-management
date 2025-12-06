@@ -25,7 +25,7 @@ export const runDatabaseSeed = async () => {
     if (!settingsExists) {
       await SystemSettings.create({
         _id: 'system_settings_singleton',
-        dailyPurchaseLimit: 100, // Free daily quota allocation
+        dailyFreeQuota: 100, // Free daily quota allocation
         creditPrice: 1,
         quotaPrice: 20, // Price for marketplace trading
       });

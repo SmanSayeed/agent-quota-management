@@ -417,9 +417,7 @@ export default function ProfilePage() {
             <div className="stat bg-base-200 rounded-lg shadow-sm">
               <div className="stat-title">Quota Balance</div>
               <div className="stat-value text-secondary">{user?.quotaBalance || 0}</div>
-              <div className="stat-desc">
-                Today purchased: {user?.todayPurchased || 0}
-              </div>
+                Available quota
             </div>
           </div>
         </Card>

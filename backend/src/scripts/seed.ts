@@ -48,7 +48,7 @@ const seedDatabase = async () => {
     if (!settingsExists) {
       await SystemSettings.create({
         _id: 'system_settings_singleton',
-        dailyPurchaseLimit: 100,
+        dailyFreeQuota: 100,
         creditPrice: 1,
         quotaPrice: 20,
       });

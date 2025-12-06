@@ -34,7 +34,7 @@ export const login = async (req: Request, res: Response) => {
           status: user.status,
           creditBalance: user.creditBalance,
           quotaBalance: user.quotaBalance,
-          todayPurchased: user.todayPurchased,
+
         },
         'Login successful'
       );
@@ -151,7 +151,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       status: user.status,
       creditBalance: user.creditBalance,
       quotaBalance: user.quotaBalance,
-      todayPurchased: user.todayPurchased,
+
       parentId: user.parentId,
     });
   } else {
@@ -210,7 +210,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       status: user.status,
       creditBalance: user.creditBalance,
       quotaBalance: user.quotaBalance,
-      todayPurchased: user.todayPurchased,
+
       parentId: user.parentId,
     }, 'Profile updated successfully');
   } catch (error) {

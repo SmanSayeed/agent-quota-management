@@ -5,11 +5,11 @@ interface PoolState {
   lastUpdated: number;
   creditPrice: number;
   quotaPrice: number;
-  dailyPurchaseLimit: number;
+  dailyFreeQuota: number;
   setAvailableQuota: (quota: number) => void;
   setCreditPrice: (price: number) => void;
   setQuotaPrice: (price: number) => void;
-  setPoolData: (data: { availableQuota?: number; creditPrice?: number; quotaPrice?: number; dailyPurchaseLimit?: number }) => void;
+  setPoolData: (data: { availableQuota?: number; creditPrice?: number; quotaPrice?: number; dailyFreeQuota?: number }) => void;
 }
 
 export const usePoolStore = create<PoolState>((set) => ({
@@ -17,7 +17,7 @@ export const usePoolStore = create<PoolState>((set) => ({
   lastUpdated: Date.now(),
   creditPrice: 1,
   quotaPrice: 20,
-  dailyPurchaseLimit: 100,
+  dailyFreeQuota: 100,
   setAvailableQuota: (quota) => set({ availableQuota: quota, lastUpdated: Date.now() }),
   setCreditPrice: (price) => set({ creditPrice: price }),
   setQuotaPrice: (price) => set({ quotaPrice: price }),
@@ -26,6 +26,6 @@ export const usePoolStore = create<PoolState>((set) => ({
     lastUpdated: data.availableQuota !== undefined ? Date.now() : state.lastUpdated,
     creditPrice: data.creditPrice ?? state.creditPrice,
     quotaPrice: data.quotaPrice ?? state.quotaPrice,
-    dailyPurchaseLimit: data.dailyPurchaseLimit ?? state.dailyPurchaseLimit,
+    dailyFreeQuota: data.dailyFreeQuota ?? state.dailyFreeQuota,
   })),
 }));

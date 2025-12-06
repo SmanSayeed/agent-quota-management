@@ -15,7 +15,6 @@ export interface IUser extends Document {
   parentId?: mongoose.Types.ObjectId;
   creditBalance: number;
   quotaBalance: number;
-  todayPurchased: number;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -79,11 +78,6 @@ const userSchema = new Schema<IUser>(
       min: 0,
     },
     quotaBalance: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    todayPurchased: {
       type: Number,
       default: 0,
       min: 0,

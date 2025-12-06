@@ -20,7 +20,6 @@ type BuyQuotaInputs = z.infer<typeof buyQuotaSchema>;
 export default function BuyQuota() {
   const navigate = useNavigate();
   const { user, updateQuotaBalance, updateCreditBalance } = useAuthStore();
-  const { dailyPurchaseLimit } = usePoolStore();
   const [isBuying, setIsBuying] = useState(false);
 
   const {
@@ -62,7 +61,7 @@ export default function BuyQuota() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card title="My Quota">
           <div className="stat p-0">
             <div className="stat-value text-primary">{user?.quotaBalance}</div>
@@ -73,15 +72,6 @@ export default function BuyQuota() {
         <Card title="Credit Balance">
           <div className="stat p-0">
             <div className="stat-value text-secondary">{user?.creditBalance}</div>
-          </div>
-        </Card>
-
-        <Card title="Daily Limit">
-          <div className="stat p-0">
-            <div className="stat-value">
-              {user?.todayPurchased} / {dailyPurchaseLimit}
-            </div>
-            <div className="stat-desc">Purchased Today</div>
           </div>
         </Card>
       </div>
@@ -101,9 +91,7 @@ export default function BuyQuota() {
 
           <div className="card-actions justify-end">
             <Button type="submit" loading={isSubmitting || isBuying}>
-              {(user?.todayPurchased || 0) >= dailyPurchaseLimit
-                ? 'Buy Extra Quota'
-                : 'Buy Normal Quota'}
+              Buy Quota
             </Button>
           </div>
         </form>

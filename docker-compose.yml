@@ -31,7 +31,7 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - .env.production
+      - backend/.env.production
     environment:
       NODE_ENV: production
       MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-admin123}@mongodb:27017/agent-management?authSource=admin&replicaSet=rs0

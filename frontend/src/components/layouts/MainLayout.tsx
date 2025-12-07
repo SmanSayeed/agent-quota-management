@@ -23,9 +23,8 @@ export default function MainLayout() {
       </div>
       <div className="drawer-side z-[100]">
         <label
-          htmlFor="my-drawer-2"
           aria-label="close sidebar"
-          className="drawer-overlay"
+          className="drawer-overlay cursor-pointer"
           onClick={() => setIsDrawerOpen(false)}
         ></label>
         <Sidebar onClose={() => setIsDrawerOpen(false)} />

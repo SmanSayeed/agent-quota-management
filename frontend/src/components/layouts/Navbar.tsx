@@ -82,14 +82,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         
         {/* Live Market Quota Counter */}
         {showMarketStats && (
-          <div className="hidden md:flex items-center gap-3 bg-base-100/50 px-3 py-1.5 rounded-full border border-base-content/10 mr-2 shadow-sm">
-            <div className="relative flex h-3 w-3">
+          <div className="flex items-center gap-2 md:gap-3 bg-base-100/50 px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-base-content/10 mr-1 md:mr-2 shadow-sm">
+            <div className="relative flex h-2 w-2 md:h-3 md:w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-300"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 md:h-3 md:w-3 bg-green-300"></span>
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[10px] uppercase font-bold text-base-content tracking-wider">Market Quota</span>
-              <span className="text-sm font-bold font-mono text-base-content">{totalMarketQuota.toLocaleString()}</span>
+              <span className="hidden md:block text-[10px] uppercase font-bold text-base-content tracking-wider">Market Quota</span>
+              <span className="text-xs md:text-sm font-bold font-mono text-base-content">{totalMarketQuota.toLocaleString()}</span>
             </div>
           </div>
         )}

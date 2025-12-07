@@ -111,7 +111,7 @@ export default function LoginPage() {
                   onClick={() => { setValue('phone', '01700000003'); setValue('password', 'password123'); }}
                   className="w-full text-xs border border-base-content/20"
                 >
-                  👶 Child Agent
+                  👶 Child Agent (of Agent 1)
                 </Button>
               </div>
             </div>
